@@ -28,8 +28,8 @@ This project is a secure ASP.NET Core Web API template with best practices for s
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/your-username/your-repo.git
-   cd your-repo/API
+   git clone https://github.com/waiyanphyohein/Reactivites.git
+   cd Reactivites/API
    ```
 
 2. **Configure Environment**
