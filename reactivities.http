@@ -1,0 +1,6 @@
+@reactivities_HostAddress = http://localhost:5012
+
+GET {{reactivities_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
