@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import './App.css'
+import Typography from '@mui/material/Typography';
+import { List, ListItem, ListItemText } from '@mui/material';
 function App() {
 
   const title = 'Reactivities'
@@ -13,14 +15,16 @@ function App() {
   }, []);
 
   return (
-    <div>
-      <h3 className='app' style={{ color: "red" }}> {title} </h3>
-      <ul>
+    <Fragment>
+      <Typography variant='h3'> {title} </Typography>
+      <List>
         {activities.map(activity => (
-          <li key={activity.id}>{activity.title}</li>
+          <ListItem key={activity.id}>
+            <ListItemText primary={activity.title} /> 
+          </ListItem>
         ))}
-      </ul>
-    </div>
+      </List>
+    </Fragment>
   )
 }
 
