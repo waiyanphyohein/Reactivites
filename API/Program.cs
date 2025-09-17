@@ -55,6 +55,8 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddCors();
+
 // Security headers middleware will be added to pipeline directly
 
 var app = builder.Build();
@@ -76,7 +78,13 @@ else
 app.UseHttpsRedirection();
 
 // Add CORS
-app.UseCors("SecurePolicy");
+app.UseCors(x => x
+    .WithOrigins("https://localhost:3000", "http://localhost:3000") // Add your frontend URLs
+    .AllowAnyMethod()
+    .AllowAnyHeader()
+    .AllowCredentials()
+    .SetIsOriginAllowedToAllowWildcardSubdomains()
+);
 
 // Add custom security headers middleware
 app.UseMiddleware<SecurityHeadersMiddleware>();
