@@ -10,6 +10,7 @@ public class DbInitializer
     {
         if (await context.Activities.AnyAsync()) return;
 
+        // Seed initial activities
         var activities = new List<Activity>
         {
             new Activity

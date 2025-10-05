@@ -1,6 +1,8 @@
 using API.Middleware;
 using Persistence;
 using Microsoft.EntityFrameworkCore;
+using Application.Activities.Queries;
+using MediatR;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -55,7 +57,13 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddCors();
+// Add MediatR for CQRS pattern (Command Query Responsibility Segregation)
+builder.Services.AddMediatR(cfg =>
+    cfg.RegisterServicesFromAssemblyContaining<GetActivityList.Handler>()
+    .RegisterServicesFromAssemblyContaining<GetActivityDetails.Handler>()
+    .RegisterServicesFromAssemblyContaining<CreateActivity.Handler>()
+);
+
 
 // Security headers middleware will be added to pipeline directly
 
