@@ -7,14 +7,14 @@ namespace Application.Activities.Queries;
 
 public class CreateActivity
 {
-    public class Query : IRequest<Activity>
+    public class Command : IRequest<Activity>
     {
         public required Activity Activity { get; set; }
     }
     
-    public class Handler(AppDbContext context) : IRequestHandler<Query, Activity>
+    public class Handler(AppDbContext context) : IRequestHandler<Command, Activity>
     {
-        public async Task<Activity> Handle(Query request, CancellationToken cancellationToken)
+        public async Task<Activity> Handle(Command request, CancellationToken cancellationToken)
         {
             try
             {

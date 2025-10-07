@@ -6,7 +6,7 @@ namespace API.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class WeatherForecastController(ILogger<WeatherForecastController> logger) : BaseApiController(logger)
+public class WeatherForecastController : BaseApiController
 {
     private static readonly string[] Summaries = new[]
     {

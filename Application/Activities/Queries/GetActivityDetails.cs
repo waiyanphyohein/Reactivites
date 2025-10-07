@@ -3,7 +3,8 @@ using Domain;
 using MediatR;  
 using System.Net;  
 using Persistence;
-using System.Security.Cryptography.X509Certificates;
+using Microsoft.Extensions.Logging;
+
 namespace Application.Activities.Queries;  
 
 public class GetActivityDetails  
@@ -13,7 +14,7 @@ public class GetActivityDetails
         public required string Id { get; set; }  
     }  
 
-    public class Handler(AppDbContext context) : IRequestHandler<Query, Activity>  
+    public class Handler(AppDbContext context, ILogger<Handler> logger) : IRequestHandler<Query, Activity>  
     {  
         public async Task<Activity> Handle(Query request, CancellationToken cancellationToken)
         {
@@ -23,6 +24,7 @@ public class GetActivityDetails
 
                 if (activity == null)
                 {
+                    logger.LogWarning("Activity not found");
                     throw new HttpRequestException("Activity not found", null, HttpStatusCode.NotFound);
                 }
 
@@ -31,6 +33,7 @@ public class GetActivityDetails
             catch (TaskCanceledException)
             {
                 // Handle the cancellation if needed
+                logger.LogWarning("Request timed out");
                 throw new HttpRequestException("Request timed out", null, HttpStatusCode.RequestTimeout);
             }
         }  

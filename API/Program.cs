@@ -69,6 +69,8 @@ builder.Services.AddMediatR(cfg =>
 
 var app = builder.Build();
 
+var rateLimitStore = new System.Collections.Concurrent.ConcurrentDictionary<string, (int Count, DateTime WindowStart)>();
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -95,15 +97,45 @@ app.UseCors(x => x
 );
 
 // Add custom security headers middleware
-app.UseMiddleware<SecurityHeadersMiddleware>();
-
 // Add rate limiting (if needed)
 app.Use(async (context, next) =>
 {
     // Basic rate limiting - you can enhance this with a proper rate limiting library
     var clientIp = context.Connection.RemoteIpAddress?.ToString();
     // Add your rate limiting logic here
-    
+    // Simple in-memory rate limiting per client IP using a shared ConcurrentDictionary
+    var maxRequests = 60; // allowed requests
+    var window = TimeSpan.FromMinutes(1); // time window
+
+    if (clientIp == null)
+    {
+        await next();
+        return;
+    }
+
+    var store = rateLimitStore;
+    var now = DateTime.UtcNow;
+
+    var entry = store.AddOrUpdate(clientIp,
+        _ => (1, now),
+        (_, old) =>
+        {
+            // reset window when expired
+            if (now - old.WindowStart > window) return (1, now);
+            return (old.Count + 1, old.WindowStart);
+        });
+
+    // If over limit, short-circuit with 429 and Retry-After header
+    if (entry.Count > maxRequests)
+    {
+        var retryAfterSeconds = (int)Math.Ceiling((entry.WindowStart + window - now).TotalSeconds);
+        context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        context.Response.Headers["Retry-After"] = Math.Max(1, retryAfterSeconds).ToString();
+        await context.Response.WriteAsync("Too many requests. Please try again later.");
+        return;
+    }
+
+    // proceed to next middleware
     await next();
 });
 
