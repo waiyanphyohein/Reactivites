@@ -3,6 +3,8 @@ using Persistence;
 using Microsoft.EntityFrameworkCore;
 using Application.Activities.Queries;
 using MediatR;
+using Application.Core;
+using Microsoft.Extensions.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -64,6 +66,8 @@ builder.Services.AddMediatR(cfg =>
     .RegisterServicesFromAssemblyContaining<CreateActivity.Handler>()
 );
 
+// Register AutoMapper and explicitly add the MappingProfiles to avoid overload ambiguity
+builder.Services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfiles>());
 
 // Security headers middleware will be added to pipeline directly
 

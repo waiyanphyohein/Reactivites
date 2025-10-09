@@ -53,7 +53,7 @@ public class ActivitiesController : BaseApiController
 
         try
         {
-            await mediator.Send(new EditActivity.Command(Guid.Parse(id), activity));
+            await mediator.Send(new EditActivity.Command(activity));
             logger.LogInformation("Activity updated successfully");
             return NoContent();
         }
