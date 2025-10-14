@@ -8,26 +8,34 @@ namespace Application.Activities.Queries;
 
 public class DeleteActivity
 {
-    public class Command : IRequest<Unit>
-    {
-        public required string Id { get; set; }
+    public class Command : IRequest<List<Activity>>{ 
+        public required List<Guid> ids { get; set; }
     }
 
-    public class Handler(AppDbContext context, ILogger<Handler> logger) : IRequestHandler<Command, Unit>
+    public class Handler(AppDbContext context, ILogger<Handler> logger) : IRequestHandler<Command, List<Activity>>
     {
-        public async Task<Unit> Handle(Command request, CancellationToken cancellationToken)
+        public async Task<List<Activity>> Handle(Command request, CancellationToken cancellationToken)
         {
             try
             {
-                var activity = await context.Activities.FindAsync(new object[] { request.Id }, cancellationToken);
-                if (activity == null)
+                var deletedActivities = new List<Activity>();
+                foreach (var id in request.ids)
                 {
-                    throw new KeyNotFoundException("Activity not found");
-                }
+                    var activity = await context.Activities.FindAsync(new object[] { id }, cancellationToken);
+                    if (activity == null)
+                    {
+                        throw new KeyNotFoundException("Activity not found");
+                    }
+                    deletedActivities.Add(activity);
 
-                context.Activities.Remove(activity);
-                await context.SaveChangesAsync(cancellationToken);
-                return Unit.Value;
+                    // Simulate some async work and check for cancellation
+                    cancellationToken.ThrowIfCancellationRequested();
+                    await Task.Delay(100, cancellationToken); // Simulate some async work
+
+                    context.Activities.Remove(activity);
+                    await context.SaveChangesAsync(cancellationToken);
+                }
+                return deletedActivities;
             }
             catch (TaskCanceledException)
             {
