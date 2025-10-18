@@ -21,20 +21,7 @@ public class GetActivityList
             try
             {
                 logger.LogInformation("Fetching activity list");
-                var tempList = new List<Activity>();
-                var activities = await context.Activities.ToListAsync(cancellationToken);
-                foreach (var activity in activities)
-                {                                    
-                    // Simulate some work
-                    cancellationToken.ThrowIfCancellationRequested();
-                    await Task.Delay(1000, cancellationToken); // Simulate some async work
-
-                    tempList.Add(activity);
-                    var i = activities.IndexOf(activity);
-                    
-                    logger.LogInformation($"Processing {i+1}/{activities.Count} activities");
-                }
-                return tempList;
+                return await context.Activities.ToListAsync(cancellationToken);              
             }
             catch (TaskCanceledException)
             {
