@@ -68,11 +68,11 @@ public class ActivitiesController : BaseApiController
     /// Delete an activity by ID
     /// </summary>
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteActivity(List<Guid> ids)
+    public async Task<IActionResult> DeleteActivity(string id)
     {
         try
         {
-            await mediator.Send(new DeleteActivity.Command { ids = ids });
+            await mediator.Send(new DeleteActivity.Command { Id = id });
             logger.LogInformation("Activity deleted successfully");
             return NoContent();
         }

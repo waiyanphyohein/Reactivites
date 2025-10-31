@@ -8,34 +8,28 @@ namespace Application.Activities.Queries;
 
 public class DeleteActivity
 {
-    public class Command : IRequest<List<Activity>>{ 
-        public required List<Guid> ids { get; set; }
+    public class Command : IRequest { 
+        public required string Id { get; set; }
     }
 
-    public class Handler(AppDbContext context, ILogger<Handler> logger) : IRequestHandler<Command, List<Activity>>
+    public class Handler(AppDbContext context, ILogger<Handler> logger) : IRequestHandler<Command>
     {
-        public async Task<List<Activity>> Handle(Command request, CancellationToken cancellationToken)
+        public async Task Handle(Command request, CancellationToken cancellationToken)
         {
             try
             {
-                var deletedActivities = new List<Activity>();
-                foreach (var id in request.ids)
+                var activity = await context.Activities.FindAsync(new object[] { request.Id }, cancellationToken);
+                if (activity == null)
                 {
-                    var activity = await context.Activities.FindAsync(new object[] { id }, cancellationToken);
-                    if (activity == null)
-                    {
-                        throw new KeyNotFoundException("Activity not found");
-                    }
-                    deletedActivities.Add(activity);
-
-                    // Simulate some async work and check for cancellation
-                    cancellationToken.ThrowIfCancellationRequested();
-                    await Task.Delay(100, cancellationToken); // Simulate some async work
-
-                    context.Activities.Remove(activity);
-                    await context.SaveChangesAsync(cancellationToken);
+                    throw new KeyNotFoundException("Activity not found");
                 }
-                return deletedActivities;
+
+                // Simulate some async work and check for cancellation
+                cancellationToken.ThrowIfCancellationRequested();
+                await Task.Delay(100, cancellationToken); // Simulate some async work
+
+                context.Activities.Remove(activity);
+                await context.SaveChangesAsync(cancellationToken);
             }
             catch (TaskCanceledException)
             {
