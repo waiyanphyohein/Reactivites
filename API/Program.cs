@@ -5,8 +5,13 @@ using Application.Activities.Queries;
 using MediatR;
 using Application.Core;
 using Microsoft.Extensions.DependencyInjection;
+using Application.Core.Helper;
+using OfficeOpenXml;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Set EPPlus license context (required for EPPlus 7.x)
+ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 
 // Add services to the container.
 
@@ -21,6 +26,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 {
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
+
+// Register ExcelExporter
+builder.Services.AddScoped<ExcelExporter>();
 
 
 
@@ -64,6 +72,7 @@ builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssemblyContaining<GetActivityList.Handler>()
     .RegisterServicesFromAssemblyContaining<GetActivityDetails.Handler>()
     .RegisterServicesFromAssemblyContaining<CreateActivity.Handler>()
+    .RegisterServicesFromAssemblyContaining<GetActivityListExcel.Handler>()
 );
 
 // Register AutoMapper and explicitly add the MappingProfiles to avoid overload ambiguity

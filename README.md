@@ -40,10 +40,18 @@ This project is a secure ASP.NET Core Web API template with best practices for s
 
    On first run, the API will automatically apply migrations and seed the database.
 
+   If not, run the following command to apply migration to your local NoSQL DB (Note; NoSQL package and entityframework package must be installed before execution.)
+   ```bash
+   dotnet ef migration add InitiateCreate -p Persistance -s API
+   dotnet ef database update --project ../Persistence --startup-project .
+   ```
+   This command applies the latest Entity Framework Core migrations to your database, using the `Persistence` project for migrations and the API project as the startup.
+
+
 4. **Run the API**
 
    ```bash
-   dotnet run
+   dotnet run 
    ```
 
    The API will be available at `https://localhost:5001`.

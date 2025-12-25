@@ -82,5 +82,16 @@ public class ActivitiesController : BaseApiController
             return NotFound();
         }
     }
+
+    /// <summary>
+    /// Export all activities to Excel format
+    /// </summary>
+    /// <returns>Excel file download</returns>
+    [HttpGet("export")]
+    public async Task<IActionResult> ExportActivities()
+    {
+        var excelBytes = await mediator.Send(new GetActivityListExcel.Query());
+        return File(excelBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "activities.xlsx");
+    }
     
 }
