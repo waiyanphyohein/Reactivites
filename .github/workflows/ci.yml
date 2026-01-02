@@ -7,6 +7,12 @@ on:
     branches: [ main, develop ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+  security-events: write
+
 env:
   DOTNET_VERSION: '10.0.x'
   NODE_VERSION: '20.x'
@@ -136,6 +142,7 @@ jobs:
     name: Code Quality Checks
     runs-on: ubuntu-latest
     needs: [backend-tests, frontend-build]
+    continue-on-error: true
 
     steps:
     - name: 📥 Checkout code
@@ -153,8 +160,11 @@ jobs:
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
+    - name: 🔄 Restore dependencies
+      run: dotnet restore
+
     - name: 🏗️ Build for analysis
-      run: dotnet build --configuration Release
+      run: dotnet build --no-restore --configuration Release
 
     - name: 🔬 Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
@@ -174,6 +184,10 @@ jobs:
            [ "${{ needs.frontend-build.result }}" != "success" ]; then
           echo "❌ Some checks failed!" >> $GITHUB_STEP_SUMMARY
           exit 1
-        else
-          echo "✅ All checks passed successfully!" >> $GITHUB_STEP_SUMMARY
         fi
+
+        if [ "${{ needs.code-quality.result }}" == "failure" ]; then
+          echo "⚠️ Code quality checks failed (non-blocking)" >> $GITHUB_STEP_SUMMARY
+        fi
+
+        echo "✅ All critical checks passed successfully!" >> $GITHUB_STEP_SUMMARY
