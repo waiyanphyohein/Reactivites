@@ -1,0 +1,63 @@
+# Build artifacts
+**/bin/
+**/obj/
+**/out/
+**/TestResults/
+
+# IDE files
+.vscode/
+.vs/
+*.swp
+*.swo
+*~
+.idea/
+*.user
+*.userosscache
+*.suo
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# GitHub
+.github/
+
+# Node modules (frontend)
+**/node_modules/
+**/dist/
+
+# Documentation
+*.md
+!README.md
+
+# Docker files
+**/.dockerignore
+**/Dockerfile*
+**/docker-compose*
+
+# Environment files
+**/.env
+**/.env.*
+
+# Database files (these will be created in container)
+**/*.db
+**/*.db-shm
+**/*.db-wal
+
+# Logs
+**/logs/
+**/*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test projects (not needed in production image)
+Tests/
+**/*Tests/
+**/*.Tests/
+
+# Claude
+.claude/
+CLAUDE.md

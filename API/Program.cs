@@ -37,6 +37,10 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Add health checks
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<AppDbContext>();
+
 // Configure HTTPS with enhanced security
 builder.Services.AddHttpsRedirection(options =>
 {
@@ -153,6 +157,9 @@ app.Use(async (context, next) =>
 });
 
 app.UseAuthorization();
+
+// Map health check endpoint
+app.MapHealthChecks("/health");
 
 app.MapControllers();
 
