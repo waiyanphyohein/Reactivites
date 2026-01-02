@@ -1,5 +1,9 @@
 # Secure API Project
 
+[![CI Pipeline](https://github.com/waiyanphyohein/Reactivites/workflows/CI%20Pipeline/badge.svg)](https://github.com/waiyanphyohein/Reactivites/actions)
+[![.NET CI/CD](https://github.com/waiyanphyohein/Reactivites/workflows/.NET%20CI%2FCD/badge.svg)](https://github.com/waiyanphyohein/Reactivites/actions)
+[![Frontend CI/CD](https://github.com/waiyanphyohein/Reactivites/workflows/Frontend%20CI%2FCD/badge.svg)](https://github.com/waiyanphyohein/Reactivites/actions)
+
 This project is a secure ASP.NET Core Web API template with best practices for security, database initialization, and modern architecture.
 
 ## Features

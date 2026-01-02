@@ -1,0 +1,179 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  NODE_VERSION: '20.x'
+
+jobs:
+  backend-tests:
+    name: Backend Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🔧 Setup .NET ${{ env.DOTNET_VERSION }}
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: 📦 Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+        restore-keys: ${{ runner.os }}-nuget-
+
+    - name: 🔄 Restore dependencies
+      run: dotnet restore
+
+    - name: 🏗️ Build solution
+      run: dotnet build --no-restore --configuration Release
+
+    - name: 🧪 Run tests with coverage
+      run: |
+        dotnet test --no-build --configuration Release \
+          --verbosity normal \
+          --logger "trx;LogFileName=test-results.trx" \
+          --collect:"XPlat Code Coverage" \
+          --results-directory ./TestResults
+
+    - name: 📊 Generate coverage report
+      if: always()
+      run: |
+        dotnet tool install -g dotnet-reportgenerator-globaltool
+        reportgenerator \
+          -reports:./TestResults/**/coverage.cobertura.xml \
+          -targetdir:./TestResults/CoverageReport \
+          -reporttypes:'Html;MarkdownSummaryGithub' \
+          || true
+
+    - name: 📈 Add coverage summary
+      if: always()
+      run: |
+        if [ -f ./TestResults/CoverageReport/SummaryGithub.md ]; then
+          cat ./TestResults/CoverageReport/SummaryGithub.md >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: 📤 Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: backend-test-results
+        path: ./TestResults/test-results.trx
+        retention-days: 30
+
+    - name: 📤 Upload coverage report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: coverage-report
+        path: ./TestResults/CoverageReport/
+        retention-days: 30
+
+    - name: ✅ Test results summary
+      if: always()
+      run: |
+        echo "### Test Results Summary 🧪" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        dotnet test --no-build --configuration Release --verbosity minimal || true
+
+  frontend-build:
+    name: Frontend Build & Lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./client
+
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🔧 Setup Node.js ${{ env.NODE_VERSION }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: './client/package-lock.json'
+
+    - name: 📦 Install dependencies
+      run: npm ci
+
+    - name: 🔍 Lint code
+      run: npm run lint
+      continue-on-error: true
+
+    - name: 🏗️ Build application
+      run: npm run build
+      env:
+        CI: true
+
+    - name: 📤 Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: frontend-dist
+        path: client/dist
+        retention-days: 7
+
+    - name: ✅ Build summary
+      run: |
+        echo "### Frontend Build Summary 🎨" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Frontend built successfully!" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Build size:**" >> $GITHUB_STEP_SUMMARY
+        du -sh dist/ >> $GITHUB_STEP_SUMMARY || echo "Unable to calculate size" >> $GITHUB_STEP_SUMMARY
+
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-build]
+
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: 🔍 Run CodeQL Analysis
+      uses: github/codeql-action/init@v3
+      with:
+        languages: 'csharp,javascript'
+
+    - name: 🔧 Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: 🏗️ Build for analysis
+      run: dotnet build --configuration Release
+
+    - name: 🔬 Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+
+  all-checks:
+    name: All Checks Passed
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-build, code-quality]
+    if: always()
+
+    steps:
+    - name: ✅ Verify all jobs passed
+      run: |
+        echo "### Pipeline Status 🚀" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ needs.backend-tests.result }}" != "success" ] || \
+           [ "${{ needs.frontend-build.result }}" != "success" ]; then
+          echo "❌ Some checks failed!" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        else
+          echo "✅ All checks passed successfully!" >> $GITHUB_STEP_SUMMARY
+        fi
