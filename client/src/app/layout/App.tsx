@@ -1,11 +1,12 @@
 import { Fragment, useEffect, useState } from 'react';
-import './App.css'
-import Typography from '@mui/material/Typography';
-import { List, ListItem, ListItemText } from '@mui/material';
+import './styles.css';
 import axios from 'axios';
+import Navbar from './Navbar';
+import { Container, CssBaseline } from '@mui/material';
+import ActivityDashboard from '../../feature/activities/activitydashboard';
+
 function App() {
 
-  const title = 'Reactivities'
   const [activities, setActivities] = useState<Activity[]>([]);
   
   useEffect(() => {
@@ -16,14 +17,12 @@ function App() {
 
   return (
     <Fragment>
-      <Typography variant='h3'> {title} </Typography>
-      <List>
-        {activities.map(activity => (
-          <ListItem key={activity.id}>
-            <ListItemText primary={activity.title} /> 
-          </ListItem>
-        ))}
-      </List>
+      <CssBaseline />
+      <Navbar />
+      <Container maxWidth="xl" sx={{ mt: 3 }}>        
+        {/* <Typography variant='h3'> {title} </Typography> */}
+        <ActivityDashboard activities={activities}/>
+      </Container>
     </Fragment>
   )
 }

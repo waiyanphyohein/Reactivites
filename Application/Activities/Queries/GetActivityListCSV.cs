@@ -5,9 +5,6 @@ using Microsoft.Extensions.Logging;
 using System.Net;
 using Application.Core.Helper;
 
-// Assume ExcelExporter exists in Infrastructure or relevant namespace
-// using Infrastructure.Services; // DO NOT import here. Assume injected properly.
-
 namespace Application.Activities.Queries;
 
 public class GetActivityListCSV

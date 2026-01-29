@@ -28,29 +28,7 @@ public class EditActivity
             _mapper.Map(request.Activity, activity);
 
             _logger.LogInformation("Activity with ID {ActivityId} updated successfully: {Activity}", activity.Id, activity);
-            // await _context.SaveChangesAsync(cancellationToken);
-
-            // if (request.Activity.Date != default)
-            //     activity.Date = request.Activity.Date;
-
-            // if (!string.IsNullOrEmpty(request.Activity.Description))
-            //     activity.Description = request.Activity.Description;
-
-            // if (!string.IsNullOrEmpty(request.Activity.Category))
-            //     activity.Category = request.Activity.Category;
-
-            // if (!string.IsNullOrEmpty(request.Activity.City))
-            //     activity.City = request.Activity.City;
-
-            // if (!string.IsNullOrEmpty(request.Activity.Venue))
-            //     activity.Venue = request.Activity.Venue;
-
-            // if (request.Activity.Latitude != 0)
-            //     activity.Latitude = request.Activity.Latitude;
-
-            // if (request.Activity.Longitude != 0)
-            //     activity.Longitude = request.Activity.Longitude;
-
+                       
             await _context.SaveChangesAsync(cancellationToken);
 
             return activity;

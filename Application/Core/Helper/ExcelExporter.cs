@@ -1,10 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using OfficeOpenXml; // EPPlus namespace
+using OfficeOpenXml;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using Persistence;
-using Domain;
 
 namespace Application.Core.Helper;
 public class ExcelExporter
@@ -52,10 +51,11 @@ public class ExcelExporter
                 worksheet.Cells[rowNumber, 3].Value = activity.Date;
                 worksheet.Cells[rowNumber, 4].Value = activity.Description;
                 worksheet.Cells[rowNumber, 5].Value = activity.Category;
-                worksheet.Cells[rowNumber, 6].Value = activity.City;
-                worksheet.Cells[rowNumber, 7].Value = activity.Venue;
-                worksheet.Cells[rowNumber, 8].Value = activity.Latitude;
-                worksheet.Cells[rowNumber, 9].Value = activity.Longitude;
+                worksheet.Cells[rowNumber, 6].Value = activity.IsCancelled;
+                worksheet.Cells[rowNumber, 7].Value = activity.City;
+                worksheet.Cells[rowNumber, 8].Value = activity.Venue;
+                worksheet.Cells[rowNumber, 9].Value = activity.Latitude;
+                worksheet.Cells[rowNumber, 10].Value = activity.Longitude;
                 rowNumber++;
             }
 
@@ -117,10 +117,11 @@ public class ExcelExporter
                 worksheet.Cells[rowNumber, 3].Value = activity.Date;
                 worksheet.Cells[rowNumber, 4].Value = activity.Description;
                 worksheet.Cells[rowNumber, 5].Value = activity.Category;
-                worksheet.Cells[rowNumber, 6].Value = activity.City;
-                worksheet.Cells[rowNumber, 7].Value = activity.Venue;
-                worksheet.Cells[rowNumber, 8].Value = activity.Latitude;
-                worksheet.Cells[rowNumber, 9].Value = activity.Longitude;
+                worksheet.Cells[rowNumber, 6].Value = activity.IsCancelled;
+                worksheet.Cells[rowNumber, 7].Value = activity.City;
+                worksheet.Cells[rowNumber, 8].Value = activity.Venue;
+                worksheet.Cells[rowNumber, 9].Value = activity.Latitude;
+                worksheet.Cells[rowNumber, 10].Value = activity.Longitude;
                 rowNumber++;
             }
 
@@ -128,6 +129,69 @@ public class ExcelExporter
             var lastColumn = GetColumnLetter(activityFields.Count);
             var tableRange = worksheet.Cells[$"A1:{lastColumn}{rowNumber - 1}"];
             var table = worksheet.Tables.Add(tableRange, "ActivitiesTable");
+
+            // Set columns to be included in the Excel table
+            table.ShowHeader = true;
+            table.TableStyle = OfficeOpenXml.Table.TableStyles.Medium2;
+
+            worksheet.Calculate();
+            
+            // Auto-fit columns
+            worksheet.Cells.AutoFitColumns();
+
+            // Return as byte array
+            return excelPackage.GetAsByteArray();
+        }
+    }
+
+    /// <summary>
+    /// Exports events to Excel format in memory and returns as byte array
+    /// </summary>
+    public byte[] ExportEventsToExcelBytes()
+    {
+        using (var excelPackage = new ExcelPackage())
+        {
+            // Create a worksheet
+            var worksheet = excelPackage.Workbook.Worksheets.Add("Events");
+
+            // Get the data from Entity Framework
+            var events = _context.Events.ToList();
+
+            // Write headers - Event properties
+            var headers = new List<string> 
+            { 
+                "EventId", 
+                "EventName", 
+                "EventDescription", 
+                "Location",
+                "GroupId",
+                "GroupName",
+                "GroupDescription"
+            };
+            
+            for (int i = 0; i < headers.Count; i++)
+            {
+                worksheet.Cells[1, i + 1].Value = headers[i];
+            }
+
+            // Write data rows
+            int rowNumber = 2; // Start from row 2 (after headers)
+            foreach (var eventEntity in events)
+            {
+                worksheet.Cells[rowNumber, 1].Value = eventEntity.EventId.ToString();
+                worksheet.Cells[rowNumber, 2].Value = eventEntity.EventName;
+                worksheet.Cells[rowNumber, 3].Value = eventEntity.EventDescription;
+                worksheet.Cells[rowNumber, 4].Value = eventEntity.Location;
+                worksheet.Cells[rowNumber, 5].Value = eventEntity.GroupId.ToString();
+                worksheet.Cells[rowNumber, 6].Value = eventEntity.GroupName;
+                worksheet.Cells[rowNumber, 7].Value = eventEntity.GroupDescription;
+                rowNumber++;
+            }
+
+            // Create Excel Table
+            var lastColumn = GetColumnLetter(headers.Count);
+            var tableRange = worksheet.Cells[$"A1:{lastColumn}{rowNumber - 1}"];
+            var table = worksheet.Tables.Add(tableRange, "EventsTable");
 
             // Set columns to be included in the Excel table
             table.ShowHeader = true;

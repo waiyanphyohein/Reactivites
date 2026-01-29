@@ -1,8 +1,6 @@
 using System;
 using Domain;
-using Persistence;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Application.Activities.Queries;
 using MediatR;
 

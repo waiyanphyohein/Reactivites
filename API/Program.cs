@@ -1,7 +1,8 @@
-using API.Middleware;
 using Persistence;
 using Microsoft.EntityFrameworkCore;
 using Application.Activities.Queries;
+using Application.Events.Queries;
+using Application.Events.Commands;
 using MediatR;
 using Application.Core;
 using Microsoft.Extensions.DependencyInjection;
@@ -77,6 +78,13 @@ builder.Services.AddMediatR(cfg =>
     .RegisterServicesFromAssemblyContaining<GetActivityDetails.Handler>()
     .RegisterServicesFromAssemblyContaining<CreateActivity.Handler>()
     .RegisterServicesFromAssemblyContaining<GetActivityListExcel.Handler>()
+    .RegisterServicesFromAssemblyContaining<GetEventList.Handler>()
+    .RegisterServicesFromAssemblyContaining<GetEventDetails.Handler>()
+    .RegisterServicesFromAssemblyContaining<CreateEvent.Handler>()
+    .RegisterServicesFromAssemblyContaining<EditEvent.Handler>()
+    .RegisterServicesFromAssemblyContaining<DeleteEvent.Handler>()
+    .RegisterServicesFromAssemblyContaining<GetEventListExcel.Handler>()
+    .RegisterServicesFromAssemblyContaining<GetEventListCSV.Handler>()
 );
 
 // Register AutoMapper and explicitly add the MappingProfiles to avoid overload ambiguity
@@ -171,14 +179,37 @@ using (var scope = app.Services.CreateScope())
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
         var context = services.GetRequiredService<AppDbContext>();
+        var configuration = services.GetRequiredService<IConfiguration>();
+        
+        logger.LogInformation("Starting database migration...");
         await context.Database.MigrateAsync();
-        await DbInitializer.Initialize(context);
+        logger.LogInformation("Database migration completed.");
+        
+        // Check if we should clear existing data before seeding
+        var clearDataOnStartup = configuration.GetValue<bool>("Database:ClearDataOnStartup", false);
+        var reseedOnStartup = configuration.GetValue<bool>("Database:ReseedOnStartup", false);
+        var clearExistingData = clearDataOnStartup || reseedOnStartup;
+        
+        if (clearExistingData)
+        {
+            logger.LogInformation("Configuration set to clear existing data on startup.");
+        }
+        
+        logger.LogInformation("Starting database seeding...");
+        await DbInitializer.Initialize(context, clearExistingData);
         logger.LogInformation("Database seeded successfully.");
     }
     catch (Exception ex)
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while seeding the database.");
+        logger.LogError(ex, "An error occurred while seeding the database. Error: {Message}", ex.Message);
+        logger.LogError(ex, "Stack trace: {StackTrace}", ex.StackTrace);
+        
+        // In development, you might want to rethrow to see the error
+        if (app.Environment.IsDevelopment())
+        {
+            throw;
+        }
     }
 }
 

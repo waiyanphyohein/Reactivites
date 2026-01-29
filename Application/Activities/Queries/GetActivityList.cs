@@ -5,7 +5,6 @@ using Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Net;
-using System.Runtime.CompilerServices;
 
 namespace Application.Activities.Queries;
 
