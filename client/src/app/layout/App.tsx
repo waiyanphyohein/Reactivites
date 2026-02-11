@@ -1,9 +1,9 @@
-import { Fragment, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import './styles.css';
 import axios from 'axios';
 import Navbar from './Navbar';
-import { Container, CssBaseline } from '@mui/material';
-import ActivityDashboard from '../../feature/activities/activitydashboard';
+import { Box, Container, CssBaseline } from '@mui/material';
+import ActivityDashboard from '../../feature/activities/dashboard/ActivityDashboard';
 
 function App() {
 
@@ -16,14 +16,14 @@ function App() {
   }, []);
 
   return (
-    <Fragment>
+    <Box sx={{ bgcolor: 'grey.100', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <CssBaseline />
       <Navbar />
       <Container maxWidth="xl" sx={{ mt: 3 }}>        
         {/* <Typography variant='h3'> {title} </Typography> */}
         <ActivityDashboard activities={activities}/>
       </Container>
-    </Fragment>
+    </Box>
   )
 }
 
