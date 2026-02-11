@@ -3,7 +3,7 @@ import './styles.css';
 import axios from 'axios';
 import Navbar from './Navbar';
 import { Box, Container, CssBaseline } from '@mui/material';
-import ActivityDashboard from '../../feature/activities/dashboard/ActivityDashboard';
+import ActivityDashboard from '../../feature/activities/dashboard/activitydashboard';
 
 function App() {
 
@@ -20,7 +20,6 @@ function App() {
       <CssBaseline />
       <Navbar />
       <Container maxWidth="xl" sx={{ mt: 3 }}>        
-        {/* <Typography variant='h3'> {title} </Typography> */}
         <ActivityDashboard activities={activities}/>
       </Container>
     </Box>
