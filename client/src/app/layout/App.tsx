@@ -3,7 +3,7 @@ import './styles.css';
 import axios from 'axios';
 import Navbar from './Navbar';
 import { Box, Container, CssBaseline } from '@mui/material';
-import ActivityDashboard from '../../feature/activities/dashboard/activitydashboard';
+import ActivityDashboard from '../../feature/activities/dashboard/ActivityDashboard';
 
 function App() {
 
