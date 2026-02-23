@@ -127,4 +127,27 @@ jobs:
 
     - name: Test Docker image
       run: |
-        docker run --rm reactivities-api:latest dotnet --info
+        # Start the container in detached mode and wait for it to be healthy
+        docker run -d --name reactivities-test \
+          -p 8080:8080 \
+          -e ASPNETCORE_ENVIRONMENT=Production \
+          reactivities-api:latest
+
+        # Wait up to 30 seconds for the health endpoint to respond
+        echo "Waiting for container to become healthy..."
+        for i in $(seq 1 30); do
+          if curl -sf http://localhost:8080/health; then
+            echo ""
+            echo "Container is healthy!"
+            break
+          fi
+          if [ $i -eq 30 ]; then
+            echo "Container did not become healthy in time"
+            docker logs reactivities-test
+            docker rm -f reactivities-test
+            exit 1
+          fi
+          sleep 1
+        done
+
+        docker rm -f reactivities-test
