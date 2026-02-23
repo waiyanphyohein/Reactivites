@@ -11,6 +11,10 @@ using OfficeOpenXml;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// In Production (e.g. Docker/CI), listen only on HTTP so no certificate file is required
+if (builder.Environment.IsProduction())
+    builder.WebHost.UseUrls("http://+:8080");
+
 // Set EPPlus license context (required for EPPlus 7.x)
 ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 
