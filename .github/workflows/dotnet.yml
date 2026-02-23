@@ -120,6 +120,7 @@ jobs:
         context: .
         file: ./API/Dockerfile
         push: false
+        load: true
         tags: reactivities-api:latest
         cache-from: type=gha
         cache-to: type=gha,mode=max
