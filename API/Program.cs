@@ -46,12 +46,15 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<AppDbContext>();
 
-// Configure HTTPS with enhanced security
-builder.Services.AddHttpsRedirection(options =>
+// Configure HTTPS redirection for local development
+if (builder.Environment.IsDevelopment())
 {
-    options.RedirectStatusCode = StatusCodes.Status307TemporaryRedirect;
-    options.HttpsPort = 5001;
-});
+    builder.Services.AddHttpsRedirection(options =>
+    {
+        options.RedirectStatusCode = StatusCodes.Status307TemporaryRedirect;
+        options.HttpsPort = 5001;
+    });
+}
 
 // Add HSTS (HTTP Strict Transport Security) with enhanced settings
 builder.Services.AddHsts(options =>
@@ -113,8 +116,11 @@ else
     app.UseHsts();
 }
 
-// HTTPS redirection should be early in the pipeline
-app.UseHttpsRedirection();
+// HTTPS redirection should be early in the pipeline (dev only)
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 // Add CORS
 app.UseCors(x => x
