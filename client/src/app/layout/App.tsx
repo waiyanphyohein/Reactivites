@@ -4,6 +4,7 @@ import axios from 'axios';
 import Navbar from './Navbar';
 import { Box, Container, CssBaseline } from '@mui/material';
 import ActivityDashboard from '../../feature/activities/dashboard/ActivityDashboard';
+import { getApiBaseUrl } from '../../lib/api';
 
 function App() {
 
@@ -11,7 +12,7 @@ function App() {
   const [selectedActivity, setSelectedActivity] = useState<Activity | undefined>(undefined);
 
   useEffect(() => {
-    axios.get('https://localhost:5001/api/activities/')
+    axios.get(`${getApiBaseUrl()}/api/activities/`)
       .then(response => setActivities(response.data))
       .catch(error => console.error('Error fetching activities:', error));
   }, []);
