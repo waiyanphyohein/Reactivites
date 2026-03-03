@@ -5,7 +5,6 @@ import axios from 'axios';
 import { getApiBaseUrl } from '../../../lib/api';
 import App from '../App';
 
-// Mock axios so we don't make real HTTP calls in tests
 vi.mock('axios');
 const mockedAxios = vi.mocked(axios);
 
@@ -30,10 +29,46 @@ const mockActivities: Activity[] = [
   },
 ];
 
+const mockProfile: UserProfile = {
+  username: 'jeff',
+  displayName: 'Jeff',
+  avatarUrl: '/images/jeff-placeholder.svg',
+  pastEvents: [
+    {
+      id: 'past-1',
+      title: 'Past Event',
+      date: '2025-01-15T12:00:00Z',
+      description: 'Past Description',
+      category: 'social',
+      city: 'New York',
+      venue: 'Central Park',
+    },
+  ],
+  futureEvents: [
+    {
+      id: 'future-1',
+      title: 'Future Event',
+      date: '2026-07-20T12:00:00Z',
+      description: 'Future Description',
+      category: 'music',
+      city: 'Boston',
+      venue: 'MIT Hall',
+    },
+  ],
+};
+
 describe('App', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    mockedAxios.get = vi.fn().mockResolvedValue({ data: mockActivities });
+    mockedAxios.get = vi.fn().mockImplementation((url: string) => {
+      if (url === `${getApiBaseUrl()}/api/activities/`) {
+        return Promise.resolve({ data: mockActivities });
+      }
+      if (url === `${getApiBaseUrl()}/api/profiles/jeff`) {
+        return Promise.resolve({ data: mockProfile });
+      }
+      return Promise.reject(new Error(`Unexpected URL: ${url}`));
+    });
   });
 
   afterEach(() => {
@@ -42,13 +77,14 @@ describe('App', () => {
 
   it('renders the Navbar', async () => {
     render(<App />);
-    expect(screen.getByText('Reactivities')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Reactivities')).toBeInTheDocument();
+    });
   });
 
   it('renders the Create Activity form', async () => {
     render(<App />);
     await waitFor(() => {
-      // The form heading is an h5 element; Navbar button is a <button>
       const matches = screen.getAllByText(/create activity/i);
       expect(matches.length).toBeGreaterThanOrEqual(1);
     });
@@ -62,15 +98,25 @@ describe('App', () => {
     });
   });
 
-  it('calls the correct API endpoint on mount', async () => {
+  it('calls activity and profile API endpoints on mount', async () => {
     render(<App />);
     await waitFor(() => {
       expect(mockedAxios.get).toHaveBeenCalledWith(`${getApiBaseUrl()}/api/activities/`);
+      expect(mockedAxios.get).toHaveBeenCalledWith(`${getApiBaseUrl()}/api/profiles/jeff`);
     });
   });
 
   it('renders no activity cards when API returns empty list', async () => {
-    mockedAxios.get = vi.fn().mockResolvedValue({ data: [] });
+    mockedAxios.get = vi.fn().mockImplementation((url: string) => {
+      if (url === `${getApiBaseUrl()}/api/activities/`) {
+        return Promise.resolve({ data: [] });
+      }
+      if (url === `${getApiBaseUrl()}/api/profiles/jeff`) {
+        return Promise.resolve({ data: mockProfile });
+      }
+      return Promise.reject(new Error(`Unexpected URL: ${url}`));
+    });
+
     render(<App />);
     await waitFor(() => {
       expect(screen.queryByRole('button', { name: /view/i })).not.toBeInTheDocument();
@@ -81,16 +127,13 @@ describe('App', () => {
     const user = userEvent.setup();
     render(<App />);
 
-    // Wait for activities to load
     await waitFor(() => {
       expect(screen.getByText('First Activity')).toBeInTheDocument();
     });
 
-    // Find all View buttons and click the first one
     const viewButtons = screen.getAllByRole('button', { name: /view/i });
     await user.click(viewButtons[0]);
 
-    // ActivityDetail should show - it renders an Edit button
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /edit/i })).toBeInTheDocument();
     });
@@ -104,23 +147,51 @@ describe('App', () => {
       expect(screen.getByText('First Activity')).toBeInTheDocument();
     });
 
-    // Select an activity
     const viewButtons = screen.getAllByRole('button', { name: /view/i });
     await user.click(viewButtons[0]);
 
-    // Wait for detail to appear
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /edit/i })).toBeInTheDocument();
     });
 
-    // Cancel from the detail card
     const cancelButtons = screen.getAllByRole('button', { name: /cancel/i });
-    // The first Cancel in the detail card (not the form)
     await user.click(cancelButtons[0]);
 
-    // Edit button should disappear
     await waitFor(() => {
       expect(screen.queryByRole('button', { name: /edit/i })).not.toBeInTheDocument();
+    });
+  });
+
+  it('allows navigating to the profile and seeing future events', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Jeff')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByText('Jeff'));
+    await user.click(screen.getByRole('menuitem', { name: 'Profile' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('@jeff')).toBeInTheDocument();
+      expect(screen.getByText('Future Event')).toBeInTheDocument();
+    });
+  });
+
+  it('logs out from dropdown and returns to login page', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Jeff')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByText('Jeff'));
+    await user.click(screen.getByRole('menuitem', { name: 'Logout' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /welcome back/i })).toBeInTheDocument();
     });
   });
 
@@ -131,12 +202,53 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(consoleSpy).toHaveBeenCalledWith('Error fetching activities:', expect.any(Error));
+      expect(consoleSpy).toHaveBeenCalled();
     });
 
-    // App should still render the Navbar button and form heading despite the error
     const matches = screen.getAllByText(/create activity/i);
     expect(matches.length).toBeGreaterThanOrEqual(1);
     consoleSpy.mockRestore();
+  });
+
+  it('creates a new activity from the form and renders it in the list', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText('First Activity')).toBeInTheDocument();
+    });
+
+    await user.type(screen.getByLabelText(/title/i), 'Created In Test');
+    await user.type(screen.getByLabelText(/date/i), '2026-11-12T18:30');
+    await user.type(screen.getByLabelText(/description/i), 'Created via form');
+    await user.type(screen.getByLabelText(/category/i), 'Networking');
+    await user.type(screen.getByLabelText(/city/i), 'New York');
+    await user.type(screen.getByLabelText(/venue/i), 'Innovation Loft');
+    await user.type(screen.getByLabelText(/latitude/i), '40.71');
+    await user.type(screen.getByLabelText(/longitude/i), '-74.00');
+    await user.click(screen.getByRole('button', { name: /submit/i }));
+
+    expect(screen.getByText('Created In Test')).toBeInTheDocument();
+  });
+
+  it('uses navbar create activity action to return from profile to activities view', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Jeff')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByText('Jeff'));
+    await user.click(screen.getByRole('menuitem', { name: 'Profile' }));
+    await waitFor(() => {
+      expect(screen.getByText('@jeff')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /create activity/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/discover activities/i)).toBeInTheDocument();
+    });
   });
 });

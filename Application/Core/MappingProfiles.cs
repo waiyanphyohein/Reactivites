@@ -14,6 +14,7 @@ public class MappingProfiles : Profile
             .ForAllMembers(opts => opts.Condition((src, dest, srcMember) =>
                 srcMember != null &&
                 !(srcMember is string str && string.IsNullOrWhiteSpace(str)) &&
+                !(srcMember is Guid g && g == Guid.Empty) &&
                 !(srcMember is double d && d == 0) && // also ignore zero for double types (like Latitude and Longitude)
                 !(srcMember is float f && f == 0f) && // also ignore zero for float types
                 !(srcMember is int i && i == 0) && // also ignore zero for int types

@@ -2,6 +2,7 @@ using System;
 using MediatR;
 using Domain;
 using Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Activities.Queries;
 
@@ -28,6 +29,34 @@ public class CreateActivity
                 if (request.Activity.Id == Guid.Empty.ToString())
                 {
                     request.Activity.Id = Guid.NewGuid().ToString();
+                }
+
+                // Map creator from display name to a persisted Person record.
+                var creatorDisplayName = request.Activity.CreatorDisplayName?.Trim();
+                if (!string.IsNullOrWhiteSpace(creatorDisplayName))
+                {
+                    var existingCreator = await context.People
+                        .FirstOrDefaultAsync(
+                            person => person.FirstName == creatorDisplayName ||
+                                      (person.FirstName + " " + person.LastName) == creatorDisplayName,
+                            cancellationToken);
+
+                    if (existingCreator == null)
+                    {
+                        existingCreator = new Person
+                        {
+                            FirstName = creatorDisplayName,
+                            LastName = "User",
+                            Age = 0,
+                            DateOfBirth = DateTime.UtcNow.Date,
+                            Interests = "Reactivities member"
+                        };
+
+                        await context.People.AddAsync(existingCreator, cancellationToken);
+                    }
+
+                    request.Activity.CreatorPersonId = existingCreator.PersonId;
+                    request.Activity.CreatorDisplayName = creatorDisplayName;
                 }
 
                 // Add the new activity to the database

@@ -11,6 +11,9 @@ public class Activity
     public string? Description { get; set; }
     public string? Category { get; set; }
     public bool IsCancelled { get; set; }
+    public string? CreatorDisplayName { get; set; }
+    public Guid? CreatorPersonId { get; set; }
+    public Person? CreatorPerson { get; set; }
 
     // Location
     public required string City { get; set; }

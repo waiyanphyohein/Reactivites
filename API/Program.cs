@@ -70,16 +70,21 @@ builder.Services.AddHsts(options =>
     // options.ExcludedHosts.Add("localhost");
 });
 
-// Add CORS for secure cross-origin requests
+// Add CORS for frontend local dev hosts (Vite + legacy ports)
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("SecurePolicy", policy =>
+    options.AddPolicy("ClientPolicy", policy =>
     {
-        policy.WithOrigins("https://localhost:3000", "https://localhost:3001") // Add your frontend URLs
+        policy.WithOrigins(
+                "http://localhost:3000",
+                "https://localhost:3000",
+                "http://localhost:3001",
+                "https://localhost:3001",
+                "http://localhost:5173",
+                "https://localhost:5173")
               .AllowAnyMethod()
               .AllowAnyHeader()
-              .AllowCredentials()
-              .SetIsOriginAllowedToAllowWildcardSubdomains();
+              .AllowCredentials();
     });
 });
 
@@ -127,13 +132,7 @@ if (app.Environment.IsDevelopment())
 }
 
 // Add CORS
-app.UseCors(x => x
-    .WithOrigins("https://localhost:3000", "http://localhost:3000") // Add your frontend URLs
-    .AllowAnyMethod()
-    .AllowAnyHeader()
-    .AllowCredentials()
-    .SetIsOriginAllowedToAllowWildcardSubdomains()
-);
+app.UseCors("ClientPolicy");
 
 // Add custom security headers middleware
 // Add rate limiting (if needed)

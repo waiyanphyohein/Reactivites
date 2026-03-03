@@ -136,4 +136,69 @@ public class CreateActivityHandlerTests : IDisposable
         result.Should().NotBeNull();
         result.Should().BeEquivalentTo(activity);
     }
+
+    [Fact]
+    public async Task Handle_WithCreatorDisplayName_PersistsCreatorRelationship()
+    {
+        // Arrange
+        var activity = ActivityTestData.CreateValidActivity();
+        activity.CreatorDisplayName = "Jeff";
+        var command = new CreateActivity.Command { Activity = activity };
+        var handler = new CreateActivity.Handler(_context);
+
+        // Act
+        var result = await handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        result.CreatorPersonId.Should().NotBeNull();
+        result.CreatorDisplayName.Should().Be("Jeff");
+
+        var creator = await _context.People.FindAsync(result.CreatorPersonId);
+        creator.Should().NotBeNull();
+        creator!.FirstName.Should().Be("Jeff");
+    }
+
+    [Fact]
+    public async Task Handle_WithExistingCreator_DoesNotCreateDuplicatePerson()
+    {
+        // Arrange
+        var existingCreator = new Person
+        {
+            FirstName = "Jeff",
+            LastName = "User",
+            Age = 0,
+            DateOfBirth = DateTime.UtcNow.Date
+        };
+        _context.People.Add(existingCreator);
+        await _context.SaveChangesAsync();
+
+        var activity = ActivityTestData.CreateValidActivity();
+        activity.CreatorDisplayName = "Jeff";
+        var command = new CreateActivity.Command { Activity = activity };
+        var handler = new CreateActivity.Handler(_context);
+
+        // Act
+        var result = await handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        result.CreatorPersonId.Should().Be(existingCreator.PersonId);
+        _context.People.Count().Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_WithoutCreatorDisplayName_LeavesCreatorFieldsNull()
+    {
+        // Arrange
+        var activity = ActivityTestData.CreateValidActivity();
+        activity.CreatorDisplayName = null;
+        var command = new CreateActivity.Command { Activity = activity };
+        var handler = new CreateActivity.Handler(_context);
+
+        // Act
+        var result = await handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        result.CreatorPersonId.Should().BeNull();
+        result.CreatorDisplayName.Should().BeNull();
+    }
 }

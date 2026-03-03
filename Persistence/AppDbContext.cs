@@ -37,6 +37,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .WithMany()
             .UsingEntity(j => j.ToTable("EventTags"));
 
+        // Configure Activity -> Person creator relationship
+        modelBuilder.Entity<Activity>()
+            .HasOne(a => a.CreatorPerson)
+            .WithMany()
+            .HasForeignKey(a => a.CreatorPersonId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         // Configure Person properties
         modelBuilder.Entity<Person>()
             .Property(p => p.FirstName)
