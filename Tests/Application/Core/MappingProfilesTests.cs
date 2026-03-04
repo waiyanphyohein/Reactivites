@@ -116,7 +116,7 @@ public class MappingProfilesTests
         // Arrange
         var originalDate = new DateTime(2024, 1, 1);
         var destination = CreateActivity(date: originalDate);
-        var source = CreateActivity(destination.Id, date: default);
+        var source = CreateActivity(destination.Id, date: default(DateTime));
 
         // Act
         _mapper.Map(source, destination);
