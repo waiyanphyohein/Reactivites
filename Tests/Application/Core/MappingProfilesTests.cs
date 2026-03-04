@@ -2,6 +2,7 @@ using Application.Core;
 using AutoMapper;
 using Domain;
 using FluentAssertions;
+using Tests.Application.TestHelpers;
 using Xunit;
 
 namespace Tests.Application.Core;
@@ -12,8 +13,7 @@ public class MappingProfilesTests
 
     public MappingProfilesTests()
     {
-        var config = new MapperConfiguration(cfg => cfg.AddProfile<MappingProfiles>());
-        _mapper = config.CreateMapper();
+        _mapper = MapperFactory.CreateMapper();
     }
 
     // ─────────────────────────────────────────────
@@ -26,7 +26,7 @@ public class MappingProfilesTests
         // Arrange
         var source = new Activity
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.NewGuid().ToString(),
             Title = "New Title",
             Date = new DateTime(2024, 6, 15, 12, 0, 0),
             Description = "New Description",
@@ -37,7 +37,7 @@ public class MappingProfilesTests
             Latitude = 51.5,
             Longitude = -0.1
         };
-        var destination = new Activity { Id = source.Id };
+        var destination = CreateActivity(source.Id);
 
         // Act
         _mapper.Map(source, destination);
@@ -57,8 +57,9 @@ public class MappingProfilesTests
     public void ActivityMap_NullString_PreservesDestinationValue()
     {
         // Arrange
-        var destination = new Activity { Id = Guid.NewGuid(), Title = "Keep This Title" };
-        var source = new Activity { Id = destination.Id, Title = null! };
+        var destination = CreateActivity(title: "Keep This Title");
+        var source = CreateActivity(destination.Id);
+        source.Title = null!;
 
         // Act
         _mapper.Map(source, destination);
@@ -71,8 +72,8 @@ public class MappingProfilesTests
     public void ActivityMap_EmptyString_PreservesDestinationValue()
     {
         // Arrange
-        var destination = new Activity { Id = Guid.NewGuid(), Description = "Keep This Description" };
-        var source = new Activity { Id = destination.Id, Description = "" };
+        var destination = CreateActivity(description: "Keep This Description");
+        var source = CreateActivity(destination.Id, description: "");
 
         // Act
         _mapper.Map(source, destination);
@@ -85,8 +86,8 @@ public class MappingProfilesTests
     public void ActivityMap_WhitespaceString_PreservesDestinationValue()
     {
         // Arrange
-        var destination = new Activity { Id = Guid.NewGuid(), City = "Keep This City" };
-        var source = new Activity { Id = destination.Id, City = "   " };
+        var destination = CreateActivity(city: "Keep This City");
+        var source = CreateActivity(destination.Id, city: "   ");
 
         // Act
         _mapper.Map(source, destination);
@@ -99,8 +100,8 @@ public class MappingProfilesTests
     public void ActivityMap_ZeroDouble_PreservesDestinationValue()
     {
         // Arrange
-        var destination = new Activity { Id = Guid.NewGuid(), Latitude = 51.5 };
-        var source = new Activity { Id = destination.Id, Latitude = 0 };
+        var destination = CreateActivity(latitude: 51.5);
+        var source = CreateActivity(destination.Id, latitude: 0);
 
         // Act
         _mapper.Map(source, destination);
@@ -114,8 +115,8 @@ public class MappingProfilesTests
     {
         // Arrange
         var originalDate = new DateTime(2024, 1, 1);
-        var destination = new Activity { Id = Guid.NewGuid(), Date = originalDate };
-        var source = new Activity { Id = destination.Id, Date = default };
+        var destination = CreateActivity(date: originalDate);
+        var source = CreateActivity(destination.Id, date: default);
 
         // Act
         _mapper.Map(source, destination);
@@ -128,8 +129,8 @@ public class MappingProfilesTests
     public void ActivityMap_NonZeroDouble_UpdatesDestinationValue()
     {
         // Arrange
-        var destination = new Activity { Id = Guid.NewGuid(), Latitude = 10.0 };
-        var source = new Activity { Id = destination.Id, Latitude = 99.9 };
+        var destination = CreateActivity(latitude: 10.0);
+        var source = CreateActivity(destination.Id, latitude: 99.9);
 
         // Act
         _mapper.Map(source, destination);
@@ -142,9 +143,9 @@ public class MappingProfilesTests
     public void ActivityMap_NonDefaultDateTime_UpdatesDestinationValue()
     {
         // Arrange
-        var destination = new Activity { Id = Guid.NewGuid(), Date = new DateTime(2024, 1, 1) };
+        var destination = CreateActivity(date: new DateTime(2024, 1, 1));
         var newDate = new DateTime(2025, 12, 31);
-        var source = new Activity { Id = destination.Id, Date = newDate };
+        var source = CreateActivity(destination.Id, date: newDate);
 
         // Act
         _mapper.Map(source, destination);
@@ -157,8 +158,8 @@ public class MappingProfilesTests
     public void ActivityMap_BooleanFalse_UpdatesDestinationValue()
     {
         // Arrange - bool is never ignored; IsCancelled = false should still update
-        var destination = new Activity { Id = Guid.NewGuid(), IsCancelled = true };
-        var source = new Activity { Id = destination.Id, IsCancelled = false };
+        var destination = CreateActivity(isCancelled: true);
+        var source = CreateActivity(destination.Id, isCancelled: false);
 
         // Act
         _mapper.Map(source, destination);
@@ -177,29 +178,8 @@ public class MappingProfilesTests
     {
         // Arrange
         var id = Guid.NewGuid();
-        var destination = new Event
-        {
-            EventId = id,
-            GroupId = id,
-            EventName = "Old Name",
-            EventDescription = "Old Desc",
-            Location = "Old Location",
-            GroupName = "Old Group",
-            GroupDescription = "Old Group Desc",
-            Organizers = new List<Person> { new Person { FirstName = "A", LastName = "B" } }
-        };
-
-        var source = new Event
-        {
-            EventId = id,
-            GroupId = id,
-            EventName = "New Name",
-            EventDescription = "New Desc",
-            Location = "New Location",
-            GroupName = "New Group",
-            GroupDescription = "New Group Desc",
-            Organizers = new List<Person> { new Person { FirstName = "C", LastName = "D" } }
-        };
+        var destination = CreateEvent(id, "Old Name", "Old Desc", "Old Location", "Old Group", "Old Group Desc");
+        var source = CreateEvent(id, "New Name", "New Desc", "New Location", "New Group", "New Group Desc");
 
         // Act
         _mapper.Map(source, destination);
@@ -217,16 +197,9 @@ public class MappingProfilesTests
     {
         // Arrange
         var id = Guid.NewGuid();
-        var destination = new Event
-        {
-            EventId = id, GroupId = id, EventName = "Keep This", GroupName = "G",
-            Organizers = new List<Person>()
-        };
-        var source = new Event
-        {
-            EventId = id, GroupId = id, EventName = null!, GroupName = "G",
-            Organizers = new List<Person>()
-        };
+        var destination = CreateEvent(id, "Keep This", groupName: "G");
+        var source = CreateEvent(id, "Placeholder", groupName: "G");
+        source.EventName = null!;
 
         // Act
         _mapper.Map(source, destination);
@@ -240,16 +213,8 @@ public class MappingProfilesTests
     {
         // Arrange
         var id = Guid.NewGuid();
-        var destination = new Event
-        {
-            EventId = id, GroupId = id, Location = "Keep This Location", GroupName = "G",
-            Organizers = new List<Person>()
-        };
-        var source = new Event
-        {
-            EventId = id, GroupId = id, Location = "", GroupName = "G",
-            Organizers = new List<Person>()
-        };
+        var destination = CreateEvent(id, location: "Keep This Location", groupName: "G");
+        var source = CreateEvent(id, location: "", groupName: "G");
 
         // Act
         _mapper.Map(source, destination);
@@ -263,16 +228,8 @@ public class MappingProfilesTests
     {
         // Arrange
         var id = Guid.NewGuid();
-        var destination = new Event
-        {
-            EventId = id, GroupId = id, EventDescription = "Keep This Desc", GroupName = "G",
-            Organizers = new List<Person>()
-        };
-        var source = new Event
-        {
-            EventId = id, GroupId = id, EventDescription = "   ", GroupName = "G",
-            Organizers = new List<Person>()
-        };
+        var destination = CreateEvent(id, eventDescription: "Keep This Desc", groupName: "G");
+        var source = CreateEvent(id, eventDescription: "   ", groupName: "G");
 
         // Act
         _mapper.Map(source, destination);
@@ -286,14 +243,8 @@ public class MappingProfilesTests
     {
         // Arrange
         var id = Guid.NewGuid();
-        var destination = new Event
-        {
-            EventId = id, GroupId = id, GroupName = "G", Organizers = new List<Person>()
-        };
-        var source = new Event
-        {
-            EventId = id, GroupId = Guid.Empty, GroupName = "G", Organizers = new List<Person>()
-        };
+        var destination = CreateEvent(id, groupName: "G");
+        var source = CreateEvent(id, groupName: "G", groupId: Guid.Empty);
 
         // Act
         _mapper.Map(source, destination);
@@ -308,14 +259,8 @@ public class MappingProfilesTests
         // Arrange
         var oldId = Guid.NewGuid();
         var newGroupId = Guid.NewGuid();
-        var destination = new Event
-        {
-            EventId = oldId, GroupId = oldId, GroupName = "G", Organizers = new List<Person>()
-        };
-        var source = new Event
-        {
-            EventId = oldId, GroupId = newGroupId, GroupName = "G", Organizers = new List<Person>()
-        };
+        var destination = CreateEvent(oldId, groupName: "G", groupId: oldId);
+        var source = CreateEvent(oldId, groupName: "G", groupId: newGroupId);
 
         // Act
         _mapper.Map(source, destination);
@@ -329,27 +274,14 @@ public class MappingProfilesTests
     {
         // Arrange
         var id = Guid.NewGuid();
-        var destination = new Event
-        {
-            EventId = id,
-            GroupId = id,
-            EventName = "Original Name",
-            EventDescription = "Original Desc",
-            Location = "Original Location",
-            GroupName = "Original Group",
-            Organizers = new List<Person>()
-        };
-
-        var source = new Event
-        {
-            EventId = id,
-            GroupId = Guid.Empty,       // should not overwrite
-            EventName = "Updated Name", // should overwrite
-            EventDescription = null!,   // should not overwrite
-            Location = "",              // should not overwrite
-            GroupName = "Updated Group",
-            Organizers = new List<Person>()
-        };
+        var destination = CreateEvent(id, "Original Name", "Original Desc", "Original Location", "Original Group");
+        var source = CreateEvent(
+            id,
+            eventName: "Updated Name",
+            eventDescription: null!,
+            location: "",
+            groupName: "Updated Group",
+            groupId: Guid.Empty); // should not overwrite
 
         // Act
         _mapper.Map(source, destination);
@@ -366,9 +298,60 @@ public class MappingProfilesTests
     public void MappingConfiguration_IsValid()
     {
         // Arrange & Act
-        var config = new MapperConfiguration(cfg => cfg.AddProfile<MappingProfiles>());
+        var config = MapperFactory.CreateMapper().ConfigurationProvider;
 
         // Assert - This throws if the configuration is invalid
         config.AssertConfigurationIsValid();
+    }
+
+    private static Activity CreateActivity(
+        string? id = null,
+        string title = "Default Title",
+        DateTime? date = null,
+        string? description = "Default Description",
+        string? category = "Default Category",
+        string city = "Default City",
+        string venue = "Default Venue",
+        bool isCancelled = false,
+        double latitude = 1.0,
+        double longitude = 1.0)
+    {
+        return new Activity
+        {
+            Id = id ?? Guid.NewGuid().ToString(),
+            Title = title,
+            Date = date ?? DateTime.UtcNow,
+            Description = description,
+            Category = category,
+            City = city,
+            Venue = venue,
+            IsCancelled = isCancelled,
+            Latitude = latitude,
+            Longitude = longitude
+        };
+    }
+
+    private static Event CreateEvent(
+        Guid? eventId = null,
+        string eventName = "Default Event Name",
+        string? eventDescription = "Default Event Description",
+        string? location = "Default Location",
+        string groupName = "Default Group Name",
+        string? groupDescription = "Default Group Description",
+        Guid? groupId = null,
+        List<Person>? organizers = null)
+    {
+        var id = eventId ?? Guid.NewGuid();
+        return new Event
+        {
+            EventId = id,
+            EventName = eventName,
+            EventDescription = eventDescription,
+            Location = location,
+            GroupId = groupId ?? id,
+            GroupName = groupName,
+            GroupDescription = groupDescription,
+            Organizers = organizers ?? new List<Person>()
+        };
     }
 }

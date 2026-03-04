@@ -13,7 +13,7 @@ public class ExcelExporterTests : IDisposable
 
     public ExcelExporterTests()
     {
-        ExcelPackage.License.SetNonCommercialPersonal("Reactivites Tests");
+        ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
         _context = DbContextMockHelper.CreateInMemoryContext();
     }
 
