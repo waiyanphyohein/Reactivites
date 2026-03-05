@@ -13,6 +13,11 @@ export default function ActivityCard({activity, selectActivity}: Props) {
             <Typography sx={{color: 'text.secondary'}}>{new Date(activity.date).toLocaleDateString()}</Typography>
             <Typography variant='body2'>{activity.description}</Typography>
             <Typography variant='subtitle1'>{activity.city} / {activity.venue}</Typography>            
+            {activity.creatorDisplayName && (
+              <Typography variant='body2' color='text.secondary'>
+                Created by {activity.creatorDisplayName}
+              </Typography>
+            )}
         </CardContent>
         <CardActions sx={{display: 'flex', justifyContent: 'space-between', pb: 2}}>
             <Chip label={activity.category} variant='outlined'/>

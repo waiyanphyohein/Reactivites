@@ -148,6 +148,49 @@ public class ActivitiesControllerTests
             Arg.Is<CreateActivity.Command>(c => c.Activity == activity));
     }
 
+    [Fact]
+    public async Task CreateActivity_WithCreatorFields_ReturnsCreatorData()
+    {
+        // Arrange
+        var creatorId = Guid.NewGuid();
+        var activity = ActivityTestData.CreateValidActivity();
+        activity.CreatorDisplayName = "Jeff";
+        activity.CreatorPersonId = creatorId;
+
+        _mediator.Send(Arg.Any<CreateActivity.Command>())
+            .Returns(activity);
+
+        // Act
+        var result = await _controller.CreateActivity(activity);
+
+        // Assert
+        result.Value.Should().NotBeNull();
+        result.Value!.CreatorDisplayName.Should().Be("Jeff");
+        result.Value.CreatorPersonId.Should().Be(creatorId);
+    }
+
+    [Fact]
+    public async Task CreateActivity_WithCreatorFields_SendsCommandIncludingCreatorData()
+    {
+        // Arrange
+        var creatorId = Guid.NewGuid();
+        var activity = ActivityTestData.CreateValidActivity();
+        activity.CreatorDisplayName = "Jeff";
+        activity.CreatorPersonId = creatorId;
+
+        _mediator.Send(Arg.Any<CreateActivity.Command>())
+            .Returns(activity);
+
+        // Act
+        await _controller.CreateActivity(activity);
+
+        // Assert
+        await _mediator.Received(1).Send(
+            Arg.Is<CreateActivity.Command>(command =>
+                command.Activity.CreatorDisplayName == "Jeff" &&
+                command.Activity.CreatorPersonId == creatorId));
+    }
+
     #endregion
 
     #region UpdateActivity Tests
