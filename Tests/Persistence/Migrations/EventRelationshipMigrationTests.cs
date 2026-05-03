@@ -44,7 +44,7 @@ public class EventRelationshipMigrationTests
         {
             var registrationCount = await verificationContext.Database.SqlQueryRaw<int>(
                 """
-                SELECT COUNT(*)
+                SELECT COUNT(*) AS Value
                 FROM EventRegistration
                 WHERE EventGroupId = '11111111-1111-1111-1111-111111111111'
                   AND RegistrationPersonId = '33333333-3333-3333-3333-333333333333'
@@ -53,7 +53,7 @@ public class EventRelationshipMigrationTests
 
             var tagCount = await verificationContext.Database.SqlQueryRaw<int>(
                 """
-                SELECT COUNT(*)
+                SELECT COUNT(*) AS Value
                 FROM EventTags
                 WHERE EventGroupId = '11111111-1111-1111-1111-111111111111'
                   AND TagsTagId = '44444444-4444-4444-4444-444444444444'
