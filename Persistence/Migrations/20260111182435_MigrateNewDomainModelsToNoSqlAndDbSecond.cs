@@ -27,14 +27,6 @@ namespace Persistence.Migrations
                 name: "IX_People_EventGroupId",
                 table: "People");
 
-            migrationBuilder.DropColumn(
-                name: "EventGroupId",
-                table: "Tags");
-
-            migrationBuilder.DropColumn(
-                name: "EventGroupId",
-                table: "People");
-
             migrationBuilder.AddColumn<string>(
                 name: "FirstName",
                 table: "People",
@@ -164,23 +156,35 @@ namespace Persistence.Migrations
                 name: "IX_GroupTags_GroupTagsTagId",
                 table: "GroupTags",
                 column: "GroupTagsTagId");
+
+            migrationBuilder.Sql(
+                """
+                INSERT INTO EventRegistration (EventGroupId, RegistrationPersonId)
+                SELECT EventGroupId, PersonId
+                FROM People
+                WHERE EventGroupId IS NOT NULL
+                """);
+
+            migrationBuilder.Sql(
+                """
+                INSERT INTO EventTags (EventGroupId, TagsTagId)
+                SELECT EventGroupId, TagId
+                FROM Tags
+                WHERE EventGroupId IS NOT NULL
+                """);
+
+            migrationBuilder.DropColumn(
+                name: "EventGroupId",
+                table: "Tags");
+
+            migrationBuilder.DropColumn(
+                name: "EventGroupId",
+                table: "People");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "EventRegistration");
-
-            migrationBuilder.DropTable(
-                name: "EventTags");
-
-            migrationBuilder.DropTable(
-                name: "GroupOrganizers");
-
-            migrationBuilder.DropTable(
-                name: "GroupTags");
-
             migrationBuilder.DropColumn(
                 name: "FirstName",
                 table: "People");
@@ -200,6 +204,50 @@ namespace Persistence.Migrations
                 table: "People",
                 type: "TEXT",
                 nullable: true);
+
+            migrationBuilder.Sql(
+                """
+                UPDATE People
+                SET EventGroupId = (
+                    SELECT EventGroupId
+                    FROM EventRegistration
+                    WHERE RegistrationPersonId = People.PersonId
+                    LIMIT 1
+                )
+                WHERE EXISTS (
+                    SELECT 1
+                    FROM EventRegistration
+                    WHERE RegistrationPersonId = People.PersonId
+                )
+                """);
+
+            migrationBuilder.Sql(
+                """
+                UPDATE Tags
+                SET EventGroupId = (
+                    SELECT EventGroupId
+                    FROM EventTags
+                    WHERE TagsTagId = Tags.TagId
+                    LIMIT 1
+                )
+                WHERE EXISTS (
+                    SELECT 1
+                    FROM EventTags
+                    WHERE TagsTagId = Tags.TagId
+                )
+                """);
+
+            migrationBuilder.DropTable(
+                name: "EventRegistration");
+
+            migrationBuilder.DropTable(
+                name: "EventTags");
+
+            migrationBuilder.DropTable(
+                name: "GroupOrganizers");
+
+            migrationBuilder.DropTable(
+                name: "GroupTags");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Tags_EventGroupId",
