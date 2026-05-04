@@ -6,16 +6,13 @@ public static class EventTestData
 {
     public static Event CreateValidEvent(Guid? eventId = null)
     {
-        // GroupId is the EF Core PK (inherited from Group via TPH).
-        // Setting GroupId == EventId allows FindAsync(EventId) to locate the record.
-        var id = eventId ?? Guid.NewGuid();
         return new Event
         {
-            EventId = id,
+            EventId = eventId ?? Guid.NewGuid(),
             EventName = "Test Event",
             EventDescription = "Test Event Description",
             Location = "Test Location",
-            GroupId = id,
+            GroupId = Guid.NewGuid(),
             GroupName = "Test Group",
             GroupDescription = "Test Group Description",
             Organizers = new List<Person>
@@ -45,7 +42,7 @@ public static class EventTestData
                     EventName = $"Event {i}",
                     EventDescription = $"Description {i}",
                     Location = $"Location {i}",
-                    GroupId = id, // GroupId == EventId so FindAsync(EventId) works (PK is GroupId)
+                    GroupId = Guid.NewGuid(),
                     GroupName = $"Group {i}",
                     GroupDescription = $"Group Description {i}",
                     Organizers = new List<Person>
