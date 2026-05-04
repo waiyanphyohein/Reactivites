@@ -131,7 +131,7 @@ public class EditEventHandlerTests : IDisposable
         await handler.Handle(command, CancellationToken.None);
 
         // Assert
-        var savedEvent = await _context.Events.FindAsync(existingEvent.EventId);
+        var savedEvent = await _context.Events.FindAsync(existingEvent.GroupId);
         savedEvent.Should().NotBeNull();
         savedEvent!.EventName.Should().Be("Saved Name");
     }

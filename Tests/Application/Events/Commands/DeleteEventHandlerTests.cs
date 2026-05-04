@@ -41,7 +41,7 @@ public class DeleteEventHandlerTests : IDisposable
         await handler.Handle(command, CancellationToken.None);
 
         // Assert
-        var deletedEvent = await _context.Events.FindAsync(eventEntity.EventId);
+        var deletedEvent = await _context.Events.FindAsync(eventEntity.GroupId);
         deletedEvent.Should().BeNull();
     }
 
