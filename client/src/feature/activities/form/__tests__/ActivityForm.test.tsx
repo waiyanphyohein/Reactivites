@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ActivityForm from '../ActivityForm';
 
@@ -89,12 +89,31 @@ describe('ActivityForm', () => {
 
     await user.click(screen.getByRole('button', { name: /submit/i }));
 
-    expect(mockCreateActivity).toHaveBeenCalledOnce();
-    expect(mockCreateActivity).toHaveBeenCalledWith(
-      expect.objectContaining({
-        title: 'My Creator Activity',
-        creatorDisplayName: 'Jeff',
-      })
-    );
+    await waitFor(() => {
+      expect(mockCreateActivity).toHaveBeenCalledOnce();
+      expect(mockCreateActivity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'My Creator Activity',
+          creatorDisplayName: 'Jeff',
+        })
+      );
+    });
+  });
+
+  it('keeps entered data visible when activity persistence fails', async () => {
+    const user = userEvent.setup();
+    mockCreateActivity.mockRejectedValueOnce(new Error('save failed'));
+    render(<ActivityForm cancelSelectActivity={mockCancelSelectActivity} currentUsername='Jeff' onCreateActivity={mockCreateActivity} />);
+
+    await user.type(screen.getByLabelText(/title/i), 'Unsaved Activity');
+    await user.type(screen.getByLabelText(/date/i), '2026-10-12T14:30');
+    await user.type(screen.getByLabelText(/city/i), 'Boston');
+    await user.type(screen.getByLabelText(/venue/i), 'Downtown Hub');
+    await user.click(screen.getByRole('button', { name: /submit/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/unable to save activity/i)).toBeInTheDocument();
+    });
+    expect(screen.getByLabelText(/title/i)).toHaveValue('Unsaved Activity');
   });
 });
