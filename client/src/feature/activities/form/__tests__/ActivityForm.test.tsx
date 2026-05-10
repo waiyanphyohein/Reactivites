@@ -1,15 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ActivityForm from '../ActivityForm';
 
 describe('ActivityForm', () => {
   const mockCancelSelectActivity = vi.fn();
-  const mockCreateActivity = vi.fn();
+  const mockCreateActivity = vi.fn<(activity: Activity) => Promise<void>>();
 
   beforeEach(() => {
     mockCancelSelectActivity.mockClear();
     mockCreateActivity.mockClear();
+    mockCreateActivity.mockResolvedValue(undefined);
   });
 
   it('renders the Create Activity heading', () => {
@@ -96,5 +97,23 @@ describe('ActivityForm', () => {
         creatorDisplayName: 'Jeff',
       })
     );
+  });
+
+  it('keeps entered activity data when saving fails', async () => {
+    const user = userEvent.setup();
+    mockCreateActivity.mockRejectedValueOnce(new Error('Network error'));
+    render(<ActivityForm cancelSelectActivity={mockCancelSelectActivity} currentUsername='Jeff' onCreateActivity={mockCreateActivity} />);
+
+    await user.type(screen.getByLabelText(/title/i), 'Retry Later Activity');
+    await user.type(screen.getByLabelText(/date/i), '2026-10-12T14:30');
+    await user.type(screen.getByLabelText(/city/i), 'Boston');
+    await user.type(screen.getByLabelText(/venue/i), 'Downtown Hub');
+
+    await user.click(screen.getByRole('button', { name: /submit/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/unable to save the activity/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/title/i)).toHaveValue('Retry Later Activity');
+    });
   });
 });

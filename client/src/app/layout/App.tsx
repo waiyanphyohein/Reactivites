@@ -149,15 +149,19 @@ function App() {
     setSelectedActivity(undefined);
   };
 
-  const handleCreateActivity = (activity: Activity) => {
-    setActivities(current => [activity, ...current]);
+  const handleCreateActivity = async (activity: Activity) => {
+    const response = await axios.post(`${getApiBaseUrl()}/api/activities/`, activity);
+    const savedActivity =
+      normalizeActivity(response.data as Record<string, unknown>) ?? activity;
+
+    setActivities(current => [savedActivity, ...current]);
 
     const currentUsername = profile.displayName.trim().toLowerCase();
-    const activityCreator = (activity.creatorDisplayName ?? '').trim().toLowerCase();
+    const activityCreator = (savedActivity.creatorDisplayName ?? '').trim().toLowerCase();
     if (activityCreator !== currentUsername) return;
 
-    const profileEvent = toProfileEvent(activity);
-    const isFuture = new Date(activity.date) >= new Date();
+    const profileEvent = toProfileEvent(savedActivity);
+    const isFuture = new Date(savedActivity.date) >= new Date();
 
     setProfile(current => ({
       ...current,
