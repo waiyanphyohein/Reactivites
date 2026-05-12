@@ -4,7 +4,7 @@ import { Box, Button, Paper, TextField, Typography } from '@mui/material';
 type Props = {
   cancelSelectActivity: () => void;
   currentUsername: string;
-  onCreateActivity: (activity: Activity) => void;
+  onCreateActivity: (activity: Activity) => Promise<void>;
 }
 
 type FormState = {
@@ -31,22 +31,25 @@ const initialState: FormState = {
 
 export default function ActivityForm({cancelSelectActivity, currentUsername, onCreateActivity}: Props) {
   const [formState, setFormState] = useState<FormState>(initialState);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleFieldChange = (field: keyof FormState, value: string) => {
     setFormState(current => ({ ...current, [field]: value }));
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!formState.title || !formState.date || !formState.city || !formState.venue) return;
+    if (isSubmitting || !formState.title || !formState.date || !formState.city || !formState.venue) {
+      return;
+    }
 
     const generatedId =
       typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
         ? crypto.randomUUID()
         : `${Date.now()}`;
 
-    onCreateActivity({
+    const activity: Activity = {
       id: generatedId,
       title: formState.title,
       date: formState.date,
@@ -57,9 +60,17 @@ export default function ActivityForm({cancelSelectActivity, currentUsername, onC
       latitude: Number(formState.latitude) || 0,
       longitude: Number(formState.longitude) || 0,
       creatorDisplayName: currentUsername,
-    });
+    };
 
-    setFormState(initialState);
+    try {
+      setIsSubmitting(true);
+      await onCreateActivity(activity);
+      setFormState(initialState);
+    } catch (error) {
+      console.error('Error creating activity:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -81,7 +92,9 @@ export default function ActivityForm({cancelSelectActivity, currentUsername, onC
             <TextField label='Longitude' variant='outlined' fullWidth required value={formState.longitude} onChange={(e) => handleFieldChange('longitude', e.target.value)} />
             <Box display='flex' justifyContent='end' gap={2}>
                 <Button type='button' variant='contained' color='inherit' onClick={cancelSelectActivity}>Cancel</Button>
-                <Button type='submit' variant='contained' color='success'>Submit</Button>            
+                <Button type='submit' variant='contained' color='success' disabled={isSubmitting}>
+                  {isSubmitting ? 'Submitting...' : 'Submit'}
+                </Button>
             </Box>
         </Box>
     </Paper>

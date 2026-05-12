@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
 import './styles.css';
-import axios from 'axios';
 import Navbar from './Navbar';
 import { Box, Container, CssBaseline } from '@mui/material';
 import ActivityDashboard from '../../feature/activities/dashboard/ActivityDashboard';
 import LoginPage from '../../feature/auth/LoginPage';
 import UserProfilePage from '../../feature/profile/UserProfilePage';
-import { getApiBaseUrl } from '../../lib/api';
+import { agent } from '../../lib/agent';
 
 const fallbackProfile: UserProfile = {
   username: 'jeff',
@@ -106,9 +105,9 @@ function App() {
       let loadedActivities: Activity[] = [];
 
       try {
-        const activitiesResponse = await axios.get(`${getApiBaseUrl()}/api/activities/`);
-        loadedActivities = Array.isArray(activitiesResponse.data)
-          ? activitiesResponse.data
+        const activitiesResponse = await agent.Activities.list();
+        loadedActivities = Array.isArray(activitiesResponse)
+          ? activitiesResponse
               .map((item: unknown) => normalizeActivity((item as Record<string, unknown>)))
               .filter((item: Activity | null): item is Activity => item !== null)
           : [];
@@ -120,8 +119,7 @@ function App() {
       const profileFromActivities = buildProfileFromActivities(loadedActivities);
 
       try {
-        const profileResponse = await axios.get(`${getApiBaseUrl()}/api/profiles/jeff`);
-        const apiProfile = profileResponse.data as UserProfile;
+        const apiProfile = await agent.Profiles.details('jeff');
         const hasProfileEvents =
           apiProfile.futureEvents.length > 0 || apiProfile.pastEvents.length > 0;
 
@@ -149,15 +147,22 @@ function App() {
     setSelectedActivity(undefined);
   };
 
-  const handleCreateActivity = (activity: Activity) => {
-    setActivities(current => [activity, ...current]);
+  const handleCreateActivity = async (activity: Activity) => {
+    const createdActivityResponse = await agent.Activities.create(activity);
+    const createdActivity = normalizeActivity(createdActivityResponse as Record<string, unknown>);
+
+    if (!createdActivity) {
+      throw new Error('Created activity response was missing required fields');
+    }
+
+    setActivities(current => [createdActivity, ...current]);
 
     const currentUsername = profile.displayName.trim().toLowerCase();
-    const activityCreator = (activity.creatorDisplayName ?? '').trim().toLowerCase();
+    const activityCreator = (createdActivity.creatorDisplayName ?? '').trim().toLowerCase();
     if (activityCreator !== currentUsername) return;
 
-    const profileEvent = toProfileEvent(activity);
-    const isFuture = new Date(activity.date) >= new Date();
+    const profileEvent = toProfileEvent(createdActivity);
+    const isFuture = new Date(createdActivity.date) >= new Date();
 
     setProfile(current => ({
       ...current,
