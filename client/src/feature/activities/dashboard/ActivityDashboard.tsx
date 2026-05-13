@@ -7,7 +7,7 @@ type Props = {
   activities: Activity[];
   selectActivity: (id: string) => void;
   cancelSelectActivity: () => void;
-  createActivity: (activity: Activity) => void;
+  createActivity: (activity: Activity) => Promise<boolean>;
   currentUsername: string;
   selectedActivity: Activity | undefined;
 }
