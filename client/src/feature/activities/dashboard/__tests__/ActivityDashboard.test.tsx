@@ -13,6 +13,7 @@ describe('ActivityDashboard', () => {
     mockSelectActivity.mockClear();
     mockCancelSelectActivity.mockClear();
     mockCreateActivity.mockClear();
+    mockCreateActivity.mockResolvedValue(true);
   });
 
   it('renders the activity list', () => {

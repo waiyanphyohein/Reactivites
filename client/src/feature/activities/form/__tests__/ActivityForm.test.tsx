@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ActivityForm from '../ActivityForm';
 
@@ -10,6 +10,7 @@ describe('ActivityForm', () => {
   beforeEach(() => {
     mockCancelSelectActivity.mockClear();
     mockCreateActivity.mockClear();
+    mockCreateActivity.mockResolvedValue(true);
   });
 
   it('renders the Create Activity heading', () => {
@@ -89,12 +90,14 @@ describe('ActivityForm', () => {
 
     await user.click(screen.getByRole('button', { name: /submit/i }));
 
-    expect(mockCreateActivity).toHaveBeenCalledOnce();
-    expect(mockCreateActivity).toHaveBeenCalledWith(
-      expect.objectContaining({
-        title: 'My Creator Activity',
-        creatorDisplayName: 'Jeff',
-      })
-    );
+    await waitFor(() => {
+      expect(mockCreateActivity).toHaveBeenCalledOnce();
+      expect(mockCreateActivity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'My Creator Activity',
+          creatorDisplayName: 'Jeff',
+        })
+      );
+    });
   });
 });
