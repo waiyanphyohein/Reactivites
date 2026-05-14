@@ -23,7 +23,7 @@ public class GetEventDetails
             {
                 logger.LogInformation("Fetching event details for EventId: {EventId}", request.EventId);
                 var eventEntity = await context.Events
-                    .FirstOrDefaultAsync(eventEntity => eventEntity.EventId == request.EventId, cancellationToken);
+                    .FirstOrDefaultAsync(evt => evt.EventId == request.EventId, cancellationToken);
 
                 if (eventEntity == null)
                 {

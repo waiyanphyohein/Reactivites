@@ -26,7 +26,7 @@ public class EditEvent
             try
             {
                 var eventEntity = await _context.Events
-                    .FirstOrDefaultAsync(eventEntity => eventEntity.EventId == request.Event.EventId, cancellationToken);
+                    .FirstOrDefaultAsync(evt => evt.EventId == request.Event.EventId, cancellationToken);
                 
                 if (eventEntity == null)
                 {

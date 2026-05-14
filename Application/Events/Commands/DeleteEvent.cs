@@ -21,7 +21,7 @@ public class DeleteEvent
             {
                 logger.LogInformation("Deleting event with ID: {EventId}", request.EventId);
                 var eventEntity = await context.Events
-                    .FirstOrDefaultAsync(eventEntity => eventEntity.EventId == request.EventId, cancellationToken);
+                    .FirstOrDefaultAsync(evt => evt.EventId == request.EventId, cancellationToken);
                 if (eventEntity == null)
                 {
                     logger.LogWarning("Event with ID {EventId} not found for deletion", request.EventId);
