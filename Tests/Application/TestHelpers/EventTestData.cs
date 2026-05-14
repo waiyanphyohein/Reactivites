@@ -33,6 +33,13 @@ public static class EventTestData
         return eventEntity;
     }
 
+    public static Event CreateValidEventWithDistinctGroupId()
+    {
+        var eventEntity = CreateValidEvent();
+        eventEntity.GroupId = Guid.NewGuid();
+        return eventEntity;
+    }
+
     public static List<Event> CreateEventList(int count = 3)
     {
         return Enumerable.Range(1, count)
