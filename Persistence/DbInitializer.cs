@@ -58,10 +58,10 @@ public class DbInitializer
             else
             {
                 // Check if database is empty
-                var hasAnyData = await context.Activities.AnyAsync() &&
-                               await context.Events.AnyAsync() &&
-                               await context.People.AnyAsync() &&
-                               await context.Tags.AnyAsync() &&
+                var hasAnyData = await context.Activities.AnyAsync() ||
+                               await context.Events.AnyAsync() ||
+                               await context.People.AnyAsync() ||
+                               await context.Tags.AnyAsync() ||
                                await context.Groups.AnyAsync();
 
                 if (hasAnyData)
@@ -349,7 +349,7 @@ public class DbInitializer
     private static List<Event> GetEvents(List<Person> people, List<Tag> tags, List<Group> groups)
     {
         var now = DateTime.Now;
-        return new List<Event>{
+        var events = new List<Event>{
             new Event {
                 GroupName = groups[0].GroupName,
                 GroupDescription = groups[0].GroupDescription,
@@ -461,6 +461,13 @@ public class DbInitializer
                 Registration = new List<Person> { people[9], people[4], people[2], people[6], people[8] }
             }
         };
+
+        foreach (var eventEntity in events)
+        {
+            eventEntity.GroupId = eventEntity.EventId;
+        }
+
+        return events;
     }
 
     private static List<Activity> GetActivities()

@@ -4,6 +4,7 @@ using MediatR;
 using System.Net;  
 using Persistence;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Events.Queries;  
 
@@ -21,7 +22,8 @@ public class GetEventDetails
             try
             {
                 logger.LogInformation("Fetching event details for EventId: {EventId}", request.EventId);
-                var eventEntity = await context.Events.FindAsync(new object[] { request.EventId }, cancellationToken);
+                var eventEntity = await context.Events
+                    .FirstOrDefaultAsync(e => e.EventId == request.EventId, cancellationToken);
 
                 if (eventEntity == null)
                 {

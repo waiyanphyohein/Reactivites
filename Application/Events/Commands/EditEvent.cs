@@ -4,6 +4,7 @@ using Domain;
 using Persistence;
 using AutoMapper;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Events.Commands;
 
@@ -24,13 +25,16 @@ public class EditEvent
         {
             try
             {
-                var eventEntity = await _context.Events.FindAsync(new object[] { request.Event.EventId }, cancellationToken);
+                var eventEntity = await _context.Events
+                    .FirstOrDefaultAsync(e => e.EventId == request.Event.EventId, cancellationToken);
                 
                 if (eventEntity == null)
                 {
                     _logger.LogWarning("Event with ID {EventId} not found for update", request.Event.EventId);
                     throw new KeyNotFoundException("Event not found");
                 }
+
+                request.Event.GroupId = eventEntity.GroupId;
 
                 // Update only the fields that are provided (not null)
                 _mapper.Map(request.Event, eventEntity);

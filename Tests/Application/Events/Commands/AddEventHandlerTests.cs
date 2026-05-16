@@ -1,4 +1,5 @@
 using Application.Events.Commands;
+using Application.Events.Queries;
 using Tests.Application.TestHelpers;
 using Domain;
 using FluentAssertions;
@@ -75,13 +76,12 @@ public class AddEventHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_ValidEventWithProvidedIds_PreservesProvidedIds()
+    public async Task Handle_ValidEventWithProvidedIds_SynchronizesGroupIdToEventId()
     {
         // Arrange
         var expectedEventId = Guid.NewGuid();
-        var expectedGroupId = Guid.NewGuid();
         var eventEntity = EventTestData.CreateValidEvent(expectedEventId);
-        eventEntity.GroupId = expectedGroupId;
+        eventEntity.GroupId = Guid.NewGuid();
         var command = new CreateEvent.Command { Event = eventEntity };
         var handler = new CreateEvent.Handler(_context, _logger);
 
@@ -90,7 +90,38 @@ public class AddEventHandlerTests : IDisposable
 
         // Assert
         result.EventId.Should().Be(expectedEventId);
-        result.GroupId.Should().Be(expectedGroupId);
+        result.GroupId.Should().Be(expectedEventId);
+    }
+
+    [Fact]
+    public async Task Handle_EventWithDefaultGeneratedIds_CanBeFetchedByEventId()
+    {
+        // Arrange
+        var eventEntity = new Event
+        {
+            EventName = "Default ID Event",
+            GroupName = "Default ID Group",
+            Organizers = new List<Person>
+            {
+                new() { FirstName = "Jane", LastName = "Doe" }
+            }
+        };
+        eventEntity.GroupId.Should().NotBe(eventEntity.EventId);
+
+        var createCommand = new CreateEvent.Command { Event = eventEntity };
+        var createHandler = new CreateEvent.Handler(_context, _logger);
+        var detailsLogger = MockLoggerFactory.CreateLogger<GetEventDetails.Handler>();
+        var detailsHandler = new GetEventDetails.Handler(_context, detailsLogger);
+
+        // Act
+        var created = await createHandler.Handle(createCommand, CancellationToken.None);
+        var fetched = await detailsHandler.Handle(
+            new GetEventDetails.Query { EventId = created.EventId },
+            CancellationToken.None);
+
+        // Assert
+        fetched.EventId.Should().Be(created.EventId);
+        fetched.GroupId.Should().Be(created.EventId);
     }
 
     [Fact]

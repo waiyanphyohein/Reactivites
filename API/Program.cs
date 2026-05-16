@@ -218,11 +218,8 @@ using (var scope = app.Services.CreateScope())
         logger.LogError(ex, "An error occurred while seeding the database. Error: {Message}", ex.Message);
         logger.LogError(ex, "Stack trace: {StackTrace}", ex.StackTrace);
         
-        // In development, you might want to rethrow to see the error
-        if (app.Environment.IsDevelopment())
-        {
-            throw;
-        }
+        // Do not serve traffic against an unmigrated or partially seeded database.
+        throw;
     }
 }
 
