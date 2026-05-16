@@ -26,18 +26,22 @@ public class CreateEvent
                     throw new HttpRequestException("Event cannot be null", null, System.Net.HttpStatusCode.BadRequest);
                 }
 
-                // Generate a new EventId if not provided or empty
-                if (request.Event.EventId == Guid.Empty)
+                if (request.Event.EventId == Guid.Empty && request.Event.GroupId == Guid.Empty)
                 {
-                    request.Event.EventId = Guid.NewGuid();
-                    logger.LogInformation("Generated new EventId: {EventId}", request.Event.EventId);
+                    var id = Guid.NewGuid();
+                    request.Event.EventId = id;
+                    request.Event.GroupId = id;
+                    logger.LogInformation("Generated new EventId and GroupId: {EventId}", request.Event.EventId);
                 }
-
-                // Generate a new GroupId if not provided or empty
-                if (request.Event.GroupId == Guid.Empty)
+                else if (request.Event.EventId == Guid.Empty)
                 {
-                    request.Event.GroupId = Guid.NewGuid();
-                    logger.LogInformation("Generated new GroupId: {GroupId} for Event: {EventId}", request.Event.GroupId, request.Event.EventId);
+                    request.Event.EventId = request.Event.GroupId;
+                    logger.LogInformation("Copied GroupId {GroupId} to empty EventId", request.Event.GroupId);
+                }
+                else if (request.Event.GroupId != request.Event.EventId)
+                {
+                    request.Event.GroupId = request.Event.EventId;
+                    logger.LogInformation("Synchronized GroupId to EventId: {EventId}", request.Event.EventId);
                 }
 
                 // Add the new event to the database
