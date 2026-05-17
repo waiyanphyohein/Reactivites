@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import axios from 'axios';
 import { getApiBaseUrl } from '../../../lib/api';
@@ -69,6 +69,9 @@ describe('App', () => {
       }
       return Promise.reject(new Error(`Unexpected URL: ${url}`));
     });
+    mockedAxios.post = vi.fn().mockImplementation((_url: string, data: Activity) => (
+      Promise.resolve({ data })
+    ));
   });
 
   afterEach(() => {
@@ -210,25 +213,33 @@ describe('App', () => {
     consoleSpy.mockRestore();
   });
 
-  it('creates a new activity from the form and renders it in the list', async () => {
-    const user = userEvent.setup();
+  it('persists a new activity through the API before rendering it in the list', async () => {
     render(<App />);
 
     await waitFor(() => {
       expect(screen.getByText('First Activity')).toBeInTheDocument();
     });
 
-    await user.type(screen.getByLabelText(/title/i), 'Created In Test');
-    await user.type(screen.getByLabelText(/date/i), '2026-11-12T18:30');
-    await user.type(screen.getByLabelText(/description/i), 'Created via form');
-    await user.type(screen.getByLabelText(/category/i), 'Networking');
-    await user.type(screen.getByLabelText(/city/i), 'New York');
-    await user.type(screen.getByLabelText(/venue/i), 'Innovation Loft');
-    await user.type(screen.getByLabelText(/latitude/i), '40.71');
-    await user.type(screen.getByLabelText(/longitude/i), '-74.00');
-    await user.click(screen.getByRole('button', { name: /submit/i }));
+    fireEvent.change(screen.getByLabelText(/title/i), { target: { value: 'Created In Test' } });
+    fireEvent.change(screen.getByLabelText(/date/i), { target: { value: '2026-11-12T18:30' } });
+    fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Created via form' } });
+    fireEvent.change(screen.getByLabelText(/category/i), { target: { value: 'Networking' } });
+    fireEvent.change(screen.getByLabelText(/city/i), { target: { value: 'New York' } });
+    fireEvent.change(screen.getByLabelText(/venue/i), { target: { value: 'Innovation Loft' } });
+    fireEvent.change(screen.getByLabelText(/latitude/i), { target: { value: '40.71' } });
+    fireEvent.change(screen.getByLabelText(/longitude/i), { target: { value: '-74.00' } });
+    fireEvent.click(screen.getByRole('button', { name: /submit/i }));
 
-    expect(screen.getByText('Created In Test')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        `${getApiBaseUrl()}/api/activities`,
+        expect.objectContaining({
+          title: 'Created In Test',
+          creatorDisplayName: 'Jeff',
+        })
+      );
+      expect(screen.getByText('Created In Test')).toBeInTheDocument();
+    });
   });
 
   it('uses navbar create activity action to return from profile to activities view', async () => {

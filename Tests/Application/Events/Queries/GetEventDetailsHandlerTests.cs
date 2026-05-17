@@ -46,6 +46,26 @@ public class GetEventDetailsHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_ExistingEvent_WhenGroupIdDiffersFromEventId_ReturnsEvent()
+    {
+        // Arrange
+        var eventEntity = EventTestData.CreateValidEvent();
+        eventEntity.GroupId = Guid.NewGuid();
+        _context.Events.Add(eventEntity);
+        await _context.SaveChangesAsync();
+
+        var query = new GetEventDetails.Query { EventId = eventEntity.EventId };
+        var handler = new GetEventDetails.Handler(_context, _logger);
+
+        // Act
+        var result = await handler.Handle(query, CancellationToken.None);
+
+        // Assert
+        result.EventId.Should().Be(eventEntity.EventId);
+        result.GroupId.Should().Be(eventEntity.GroupId);
+    }
+
+    [Fact]
     public async Task Handle_NonExistentEvent_ThrowsHttpRequestExceptionWithNotFound()
     {
         // Arrange
