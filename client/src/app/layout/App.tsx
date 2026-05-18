@@ -149,21 +149,39 @@ function App() {
     setSelectedActivity(undefined);
   };
 
-  const handleCreateActivity = (activity: Activity) => {
-    setActivities(current => [activity, ...current]);
+  const handleCreateActivity = async (activity: Activity): Promise<boolean> => {
+    let persistedActivity: Activity;
+
+    try {
+      const response = await axios.post(`${getApiBaseUrl()}/api/activities`, activity);
+      const normalizedActivity = normalizeActivity(response.data as Record<string, unknown>);
+
+      if (!normalizedActivity) {
+        throw new Error('Activity API returned an invalid activity.');
+      }
+
+      persistedActivity = normalizedActivity;
+    } catch (error) {
+      console.error('Error creating activity:', error);
+      return false;
+    }
+
+    setActivities(current => [persistedActivity, ...current]);
 
     const currentUsername = profile.displayName.trim().toLowerCase();
-    const activityCreator = (activity.creatorDisplayName ?? '').trim().toLowerCase();
-    if (activityCreator !== currentUsername) return;
+    const activityCreator = (persistedActivity.creatorDisplayName ?? '').trim().toLowerCase();
+    if (activityCreator !== currentUsername) return true;
 
-    const profileEvent = toProfileEvent(activity);
-    const isFuture = new Date(activity.date) >= new Date();
+    const profileEvent = toProfileEvent(persistedActivity);
+    const isFuture = new Date(persistedActivity.date) >= new Date();
 
     setProfile(current => ({
       ...current,
       futureEvents: isFuture ? [profileEvent, ...current.futureEvents] : current.futureEvents,
       pastEvents: isFuture ? current.pastEvents : [profileEvent, ...current.pastEvents],
     }));
+
+    return true;
   };
 
   const handleCreateActivityAction = () => {
