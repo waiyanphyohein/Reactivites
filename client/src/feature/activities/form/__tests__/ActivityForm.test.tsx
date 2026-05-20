@@ -9,7 +9,8 @@ describe('ActivityForm', () => {
 
   beforeEach(() => {
     mockCancelSelectActivity.mockClear();
-    mockCreateActivity.mockClear();
+    mockCreateActivity.mockReset();
+    mockCreateActivity.mockResolvedValue(true);
   });
 
   it('renders the Create Activity heading', () => {
