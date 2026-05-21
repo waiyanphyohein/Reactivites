@@ -3,6 +3,7 @@ using MediatR;
 using Persistence;
 using Domain;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Events.Commands;
 
@@ -19,7 +20,8 @@ public class DeleteEvent
             try
             {
                 logger.LogInformation("Deleting event with ID: {EventId}", request.EventId);
-                var eventEntity = await context.Events.FindAsync(new object[] { request.EventId }, cancellationToken);
+                var eventEntity = await context.Events
+                    .FirstOrDefaultAsync(e => e.EventId == request.EventId, cancellationToken);
                 if (eventEntity == null)
                 {
                     logger.LogWarning("Event with ID {EventId} not found for deletion", request.EventId);
