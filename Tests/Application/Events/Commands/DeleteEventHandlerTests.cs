@@ -46,6 +46,27 @@ public class DeleteEventHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_ExistingEventWithDifferentGroupId_DeletesByEventId()
+    {
+        // Arrange
+        var eventEntity = EventTestData.CreateValidEvent();
+        eventEntity.GroupId = Guid.NewGuid();
+        _context.Events.Add(eventEntity);
+        await _context.SaveChangesAsync();
+
+        var command = new DeleteEvent.Command { EventId = eventEntity.EventId };
+        var handler = new DeleteEvent.Handler(_context, _logger);
+
+        // Act
+        await handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        var deletedEvent = await _context.Events
+            .FirstOrDefaultAsync(e => e.EventId == eventEntity.EventId);
+        deletedEvent.Should().BeNull();
+    }
+
+    [Fact]
     public async Task Handle_NonExistentEvent_ThrowsKeyNotFoundException()
     {
         // Arrange

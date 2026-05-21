@@ -4,6 +4,7 @@ using Domain;
 using Persistence;
 using AutoMapper;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Events.Commands;
 
@@ -24,7 +25,8 @@ public class EditEvent
         {
             try
             {
-                var eventEntity = await _context.Events.FindAsync(new object[] { request.Event.EventId }, cancellationToken);
+                var eventEntity = await _context.Events
+                    .FirstOrDefaultAsync(e => e.EventId == request.Event.EventId, cancellationToken);
                 
                 if (eventEntity == null)
                 {
