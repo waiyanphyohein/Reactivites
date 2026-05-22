@@ -61,7 +61,7 @@ public class GetUserProfileHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_WhenNoCreatorMatch_FallsBackToAllActivities()
+    public async Task Handle_WhenNoCreatorMatch_ReturnsNoActivities()
     {
         // Arrange
         _context.Activities.AddRange(
@@ -93,8 +93,8 @@ public class GetUserProfileHandlerTests : IDisposable
         var result = await handler.Handle(new GetUserProfile.Query { Username = "unknown" }, CancellationToken.None);
 
         // Assert
-        result.FutureEvents.Should().ContainSingle();
-        result.PastEvents.Should().ContainSingle();
+        result.FutureEvents.Should().BeEmpty();
+        result.PastEvents.Should().BeEmpty();
     }
 
     [Fact]
@@ -109,7 +109,8 @@ public class GetUserProfileHandlerTests : IDisposable
             Description = "Future only",
             Category = "General",
             City = "Seattle",
-            Venue = "Venue"
+            Venue = "Venue",
+            CreatorDisplayName = "Jeff"
         });
         await _context.SaveChangesAsync();
 
@@ -121,5 +122,32 @@ public class GetUserProfileHandlerTests : IDisposable
         // Assert
         result.PastEvents.Should().NotBeEmpty();
         result.PastEvents[0].Id.Should().Contain("-past-");
+    }
+
+    [Fact]
+    public async Task Handle_WithMatchingCreator_IncludesCreatorDisplayName()
+    {
+        // Arrange
+        _context.Activities.Add(new Activity
+        {
+            Id = Guid.NewGuid().ToString(),
+            Title = "Creator Metadata Event",
+            Date = DateTime.UtcNow.AddDays(2),
+            Description = "Created by Jeff",
+            Category = "Tech",
+            City = "Boston",
+            Venue = "Hub",
+            CreatorDisplayName = "Jeff"
+        });
+        await _context.SaveChangesAsync();
+
+        var handler = new GetUserProfile.Handler(_context);
+
+        // Act
+        var result = await handler.Handle(new GetUserProfile.Query { Username = "jeff" }, CancellationToken.None);
+
+        // Assert
+        result.FutureEvents.Should().ContainSingle();
+        result.FutureEvents[0].CreatorDisplayName.Should().Be("Jeff");
     }
 }

@@ -2,6 +2,7 @@ using Application.Events.Commands;
 using Tests.Application.TestHelpers;
 using Domain;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using System.Net;
@@ -58,6 +59,37 @@ public class EditEventHandlerTests : IDisposable
         result.EventName.Should().Be("Updated Event Name");
         result.EventDescription.Should().Be("Updated Description");
         result.Location.Should().Be("Updated Location");
+    }
+
+    [Fact]
+    public async Task Handle_ExistingEventWithDifferentGroupId_UpdatesByEventId()
+    {
+        // Arrange
+        var existingEvent = EventTestData.CreateValidEvent();
+        existingEvent.GroupId = Guid.NewGuid();
+        _context.Events.Add(existingEvent);
+        await _context.SaveChangesAsync();
+
+        var updatedEvent = new Event
+        {
+            EventId = existingEvent.EventId,
+            EventName = "Updated By EventId",
+            EventDescription = existingEvent.EventDescription,
+            Location = existingEvent.Location,
+            GroupId = existingEvent.GroupId,
+            GroupName = existingEvent.GroupName,
+            Organizers = existingEvent.Organizers
+        };
+
+        var command = new EditEvent.Command(updatedEvent);
+        var handler = new EditEvent.Handler(_context, _mapper, _logger);
+
+        // Act
+        await handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        var savedEvent = await _context.Events.SingleAsync(evt => evt.EventId == existingEvent.EventId);
+        savedEvent.EventName.Should().Be("Updated By EventId");
     }
 
     [Fact]

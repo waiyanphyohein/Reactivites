@@ -57,11 +57,11 @@ public class DbInitializer
             }
             else
             {
-                // Check if database is empty
-                var hasAnyData = await context.Activities.AnyAsync() &&
-                               await context.Events.AnyAsync() &&
-                               await context.People.AnyAsync() &&
-                               await context.Tags.AnyAsync() &&
+                // A partially populated database is not empty; do not duplicate seed data on restart.
+                var hasAnyData = await context.Activities.AnyAsync() ||
+                               await context.Events.AnyAsync() ||
+                               await context.People.AnyAsync() ||
+                               await context.Tags.AnyAsync() ||
                                await context.Groups.AnyAsync();
 
                 if (hasAnyData)

@@ -27,12 +27,6 @@ public class GetUserProfile
                     string.Equals(activity.CreatorDisplayName, request.Username, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
-            // Keep demo behavior usable if no creator data exists yet.
-            if (userActivities.Count == 0)
-            {
-                userActivities = allActivities;
-            }
-
             var futureActivities = userActivities
                 .Where(activity => activity.Date.ToUniversalTime() >= now)
                 .Select(MapActivity)
@@ -77,7 +71,8 @@ public class GetUserProfile
                 Description = activity.Description,
                 Category = activity.Category,
                 City = activity.City,
-                Venue = activity.Venue
+                Venue = activity.Venue,
+                CreatorDisplayName = activity.CreatorDisplayName
             };
         }
     }
@@ -101,4 +96,5 @@ public record ProfileActivityDto
     public string? Category { get; init; }
     public required string City { get; init; }
     public required string Venue { get; init; }
+    public string? CreatorDisplayName { get; init; }
 }
