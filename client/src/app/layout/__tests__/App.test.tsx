@@ -69,6 +69,12 @@ describe('App', () => {
       }
       return Promise.reject(new Error(`Unexpected URL: ${url}`));
     });
+    mockedAxios.post = vi.fn().mockImplementation((url: string, activity: Activity) => {
+      if (url === `${getApiBaseUrl()}/api/activities`) {
+        return Promise.resolve({ data: { ...activity, id: 'created-by-api' } });
+      }
+      return Promise.reject(new Error(`Unexpected URL: ${url}`));
+    });
   });
 
   afterEach(() => {
@@ -210,7 +216,7 @@ describe('App', () => {
     consoleSpy.mockRestore();
   });
 
-  it('creates a new activity from the form and renders it in the list', async () => {
+  it('persists a new activity through the API before rendering it in the list', async () => {
     const user = userEvent.setup();
     render(<App />);
 
@@ -228,7 +234,16 @@ describe('App', () => {
     await user.type(screen.getByLabelText(/longitude/i), '-74.00');
     await user.click(screen.getByRole('button', { name: /submit/i }));
 
-    expect(screen.getByText('Created In Test')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        `${getApiBaseUrl()}/api/activities`,
+        expect.objectContaining({
+          title: 'Created In Test',
+          creatorDisplayName: 'Jeff',
+        })
+      );
+      expect(screen.getByText('Created In Test')).toBeInTheDocument();
+    });
   });
 
   it('uses navbar create activity action to return from profile to activities view', async () => {
