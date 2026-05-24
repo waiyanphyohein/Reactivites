@@ -76,6 +76,7 @@ public class GetUserProfile
                 Date = activity.Date,
                 Description = activity.Description,
                 Category = activity.Category,
+                CreatorDisplayName = activity.CreatorDisplayName,
                 City = activity.City,
                 Venue = activity.Venue
             };
@@ -99,6 +100,7 @@ public record ProfileActivityDto
     public DateTime Date { get; init; }
     public string? Description { get; init; }
     public string? Category { get; init; }
+    public string? CreatorDisplayName { get; init; }
     public required string City { get; init; }
     public required string Venue { get; init; }
 }
