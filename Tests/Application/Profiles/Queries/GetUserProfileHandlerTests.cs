@@ -58,6 +58,7 @@ public class GetUserProfileHandlerTests : IDisposable
         // Assert
         result.FutureEvents.Should().ContainSingle();
         result.FutureEvents[0].Title.Should().Be("Jeff Future Event");
+        result.FutureEvents[0].CreatorDisplayName.Should().Be("Jeff");
     }
 
     [Fact]
