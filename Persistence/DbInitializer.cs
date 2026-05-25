@@ -57,11 +57,12 @@ public class DbInitializer
             }
             else
             {
-                // Check if database is empty
-                var hasAnyData = await context.Activities.AnyAsync() &&
-                               await context.Events.AnyAsync() &&
-                               await context.People.AnyAsync() &&
-                               await context.Tags.AnyAsync() &&
+                // Skip automatic seeding if any core table already contains data.
+                // This prevents duplicated seed rows when new tables are added to an existing database.
+                var hasAnyData = await context.Activities.AnyAsync() ||
+                               await context.Events.AnyAsync() ||
+                               await context.People.AnyAsync() ||
+                               await context.Tags.AnyAsync() ||
                                await context.Groups.AnyAsync();
 
                 if (hasAnyData)

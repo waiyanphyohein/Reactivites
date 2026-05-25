@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import axios from 'axios';
 import { getApiBaseUrl } from '../../../lib/api';
@@ -68,6 +68,9 @@ describe('App', () => {
         return Promise.resolve({ data: mockProfile });
       }
       return Promise.reject(new Error(`Unexpected URL: ${url}`));
+    });
+    mockedAxios.post = vi.fn().mockImplementation((_url: string, activity: Activity) => {
+      return Promise.resolve({ data: activity });
     });
   });
 
@@ -211,6 +214,59 @@ describe('App', () => {
   });
 
   it('creates a new activity from the form and renders it in the list', async () => {
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText('First Activity')).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText(/title/i), { target: { value: 'Created In Test' } });
+    fireEvent.change(screen.getByLabelText(/date/i), { target: { value: '2026-11-12T18:30' } });
+    fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Created via form' } });
+    fireEvent.change(screen.getByLabelText(/category/i), { target: { value: 'Networking' } });
+    fireEvent.change(screen.getByLabelText(/city/i), { target: { value: 'New York' } });
+    fireEvent.change(screen.getByLabelText(/venue/i), { target: { value: 'Innovation Loft' } });
+    fireEvent.change(screen.getByLabelText(/latitude/i), { target: { value: '40.71' } });
+    fireEvent.change(screen.getByLabelText(/longitude/i), { target: { value: '-74.00' } });
+    fireEvent.click(screen.getByRole('button', { name: /submit/i }));
+
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        `${getApiBaseUrl()}/api/activities`,
+        expect.objectContaining({ title: 'Created In Test' })
+      );
+      expect(screen.getByText('Created In Test')).toBeInTheDocument();
+    });
+  });
+
+  it('does not render a created activity when the API create fails', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockedAxios.post = vi.fn().mockRejectedValue(new Error('Create failed'));
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText('First Activity')).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText(/title/i), { target: { value: 'Rejected Activity' } });
+    fireEvent.change(screen.getByLabelText(/date/i), { target: { value: '2026-11-12T18:30' } });
+    fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Should not persist' } });
+    fireEvent.change(screen.getByLabelText(/category/i), { target: { value: 'Networking' } });
+    fireEvent.change(screen.getByLabelText(/city/i), { target: { value: 'New York' } });
+    fireEvent.change(screen.getByLabelText(/venue/i), { target: { value: 'Innovation Loft' } });
+    fireEvent.change(screen.getByLabelText(/latitude/i), { target: { value: '40.71' } });
+    fireEvent.change(screen.getByLabelText(/longitude/i), { target: { value: '-74.00' } });
+    fireEvent.click(screen.getByRole('button', { name: /submit/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/unable to create activity/i)).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Rejected Activity')).not.toBeInTheDocument();
+    consoleSpy.mockRestore();
+  });
+
+  it('clears stale activities across logout and login when reload fails', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const user = userEvent.setup();
     render(<App />);
 
@@ -218,17 +274,22 @@ describe('App', () => {
       expect(screen.getByText('First Activity')).toBeInTheDocument();
     });
 
-    await user.type(screen.getByLabelText(/title/i), 'Created In Test');
-    await user.type(screen.getByLabelText(/date/i), '2026-11-12T18:30');
-    await user.type(screen.getByLabelText(/description/i), 'Created via form');
-    await user.type(screen.getByLabelText(/category/i), 'Networking');
-    await user.type(screen.getByLabelText(/city/i), 'New York');
-    await user.type(screen.getByLabelText(/venue/i), 'Innovation Loft');
-    await user.type(screen.getByLabelText(/latitude/i), '40.71');
-    await user.type(screen.getByLabelText(/longitude/i), '-74.00');
-    await user.click(screen.getByRole('button', { name: /submit/i }));
+    await user.click(screen.getByText('Jeff'));
+    await user.click(screen.getByRole('menuitem', { name: 'Logout' }));
 
-    expect(screen.getByText('Created In Test')).toBeInTheDocument();
+    mockedAxios.get = vi.fn().mockRejectedValue(new Error('Network Error'));
+
+    fireEvent.change(screen.getByLabelText(/email/i), {
+      target: { value: 'casey@reactivities.app' },
+    });
+    fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'password' } });
+    fireEvent.click(screen.getByRole('button', { name: /^continue$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Casey')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('First Activity')).not.toBeInTheDocument();
+    consoleSpy.mockRestore();
   });
 
   it('uses navbar create activity action to return from profile to activities view', async () => {
