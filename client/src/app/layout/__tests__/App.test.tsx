@@ -69,6 +69,9 @@ describe('App', () => {
       }
       return Promise.reject(new Error(`Unexpected URL: ${url}`));
     });
+    mockedAxios.post = vi.fn().mockImplementation((_url: string, activity: Activity) => {
+      return Promise.resolve({ data: activity });
+    });
   });
 
   afterEach(() => {
@@ -228,7 +231,66 @@ describe('App', () => {
     await user.type(screen.getByLabelText(/longitude/i), '-74.00');
     await user.click(screen.getByRole('button', { name: /submit/i }));
 
-    expect(screen.getByText('Created In Test')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        `${getApiBaseUrl()}/api/activities`,
+        expect.objectContaining({ title: 'Created In Test' })
+      );
+      expect(screen.getByText('Created In Test')).toBeInTheDocument();
+    });
+  });
+
+  it('does not render a created activity when the API create fails', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockedAxios.post = vi.fn().mockRejectedValue(new Error('Create failed'));
+    const user = userEvent.setup();
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText('First Activity')).toBeInTheDocument();
+    });
+
+    await user.type(screen.getByLabelText(/title/i), 'Rejected Activity');
+    await user.type(screen.getByLabelText(/date/i), '2026-11-12T18:30');
+    await user.type(screen.getByLabelText(/description/i), 'Should not persist');
+    await user.type(screen.getByLabelText(/category/i), 'Networking');
+    await user.type(screen.getByLabelText(/city/i), 'New York');
+    await user.type(screen.getByLabelText(/venue/i), 'Innovation Loft');
+    await user.type(screen.getByLabelText(/latitude/i), '40.71');
+    await user.type(screen.getByLabelText(/longitude/i), '-74.00');
+    await user.click(screen.getByRole('button', { name: /submit/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/unable to create activity/i)).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Rejected Activity')).not.toBeInTheDocument();
+    consoleSpy.mockRestore();
+  });
+
+  it('clears stale activities across logout and login when reload fails', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const user = userEvent.setup();
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText('First Activity')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByText('Jeff'));
+    await user.click(screen.getByRole('menuitem', { name: 'Logout' }));
+
+    mockedAxios.get = vi.fn().mockRejectedValue(new Error('Network Error'));
+
+    await user.clear(screen.getByLabelText(/email/i));
+    await user.type(screen.getByLabelText(/email/i), 'casey@reactivities.app');
+    await user.type(screen.getByLabelText(/password/i), 'password');
+    await user.click(screen.getByRole('button', { name: /^continue$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Casey')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('First Activity')).not.toBeInTheDocument();
+    consoleSpy.mockRestore();
   });
 
   it('uses navbar create activity action to return from profile to activities view', async () => {

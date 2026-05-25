@@ -102,6 +102,8 @@ function App() {
   useEffect(() => {
     if (!isAuthenticated) return;
 
+    let isCurrent = true;
+
     const loadData = async () => {
       let loadedActivities: Activity[] = [];
 
@@ -112,15 +114,19 @@ function App() {
               .map((item: unknown) => normalizeActivity((item as Record<string, unknown>)))
               .filter((item: Activity | null): item is Activity => item !== null)
           : [];
+        if (!isCurrent) return;
         setActivities(loadedActivities);
       } catch (error) {
         console.error('Error fetching activities:', error);
+        if (!isCurrent) return;
+        setActivities([]);
       }
 
       const profileFromActivities = buildProfileFromActivities(loadedActivities);
 
       try {
         const profileResponse = await axios.get(`${getApiBaseUrl()}/api/profiles/jeff`);
+        if (!isCurrent) return;
         const apiProfile = profileResponse.data as UserProfile;
         const hasProfileEvents =
           apiProfile.futureEvents.length > 0 || apiProfile.pastEvents.length > 0;
@@ -134,11 +140,16 @@ function App() {
         setProfile(hasProfileEvents ? apiProfile : profileFromActivities);
       } catch (error) {
         console.error('Error fetching profile:', error);
+        if (!isCurrent) return;
         setProfile(profileFromActivities);
       }
     };
 
     void loadData();
+
+    return () => {
+      isCurrent = false;
+    };
   }, [isAuthenticated]);
 
   const handleSelectActivity = (id: string) => {
@@ -149,15 +160,22 @@ function App() {
     setSelectedActivity(undefined);
   };
 
-  const handleCreateActivity = (activity: Activity) => {
-    setActivities(current => [activity, ...current]);
+  const handleCreateActivity = async (activity: Activity) => {
+    const response = await axios.post(`${getApiBaseUrl()}/api/activities`, activity);
+    const createdActivity = normalizeActivity(response.data as Record<string, unknown>);
+
+    if (!createdActivity) {
+      throw new Error('API returned an invalid activity payload');
+    }
+
+    setActivities(current => [createdActivity, ...current]);
 
     const currentUsername = profile.displayName.trim().toLowerCase();
-    const activityCreator = (activity.creatorDisplayName ?? '').trim().toLowerCase();
+    const activityCreator = (createdActivity.creatorDisplayName ?? '').trim().toLowerCase();
     if (activityCreator !== currentUsername) return;
 
-    const profileEvent = toProfileEvent(activity);
-    const isFuture = new Date(activity.date) >= new Date();
+    const profileEvent = toProfileEvent(createdActivity);
+    const isFuture = new Date(createdActivity.date) >= new Date();
 
     setProfile(current => ({
       ...current,
@@ -186,7 +204,9 @@ function App() {
       storage.setItem('reactivities_username', username);
     }
 
-    setProfile(current => ({ ...current, displayName: username }));
+    setActivities([]);
+    setSelectedActivity(undefined);
+    setProfile({ ...fallbackProfile, displayName: username });
     setIsAuthenticated(true);
   };
 
@@ -198,6 +218,8 @@ function App() {
 
     setIsAuthenticated(false);
     setActiveView('activities');
+    setActivities([]);
+    setProfile(fallbackProfile);
     setSelectedActivity(undefined);
   };
 
