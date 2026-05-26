@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Box, Button, Paper, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, Paper, TextField, Typography } from '@mui/material';
     
 type Props = {
   cancelSelectActivity: () => void;
   currentUsername: string;
-  onCreateActivity: (activity: Activity) => void;
+  onCreateActivity: (activity: Activity) => Promise<boolean>;
 }
 
 type FormState = {
@@ -31,22 +31,27 @@ const initialState: FormState = {
 
 export default function ActivityForm({cancelSelectActivity, currentUsername, onCreateActivity}: Props) {
   const [formState, setFormState] = useState<FormState>(initialState);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | undefined>(undefined);
 
   const handleFieldChange = (field: keyof FormState, value: string) => {
     setFormState(current => ({ ...current, [field]: value }));
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!formState.title || !formState.date || !formState.city || !formState.venue) return;
+    if (isSubmitting || !formState.title || !formState.date || !formState.city || !formState.venue) return;
 
     const generatedId =
       typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
         ? crypto.randomUUID()
         : `${Date.now()}`;
 
-    onCreateActivity({
+    setIsSubmitting(true);
+    setSubmitError(undefined);
+
+    const wasCreated = await onCreateActivity({
       id: generatedId,
       title: formState.title,
       date: formState.date,
@@ -59,7 +64,13 @@ export default function ActivityForm({cancelSelectActivity, currentUsername, onC
       creatorDisplayName: currentUsername,
     });
 
-    setFormState(initialState);
+    if (wasCreated) {
+      setFormState(initialState);
+    } else {
+      setSubmitError('Unable to save activity. Please try again.');
+    }
+
+    setIsSubmitting(false);
   };
 
   return (
@@ -70,6 +81,7 @@ export default function ActivityForm({cancelSelectActivity, currentUsername, onC
         <Typography variant='body2' sx={{ mb: 2 }} color='text.secondary'>
             Creator: {currentUsername}
         </Typography>
+        {submitError && <Alert severity='error' sx={{ mb: 2 }}>{submitError}</Alert>}
         <Box component='form' display='flex' flexDirection='column' gap={3} noValidate onSubmit={handleSubmit}>
             <TextField label='Title' variant='outlined' fullWidth required value={formState.title} onChange={(e) => handleFieldChange('title', e.target.value)} />
             <TextField label='Date' type='datetime-local' variant='outlined' fullWidth required value={formState.date} onChange={(e) => handleFieldChange('date', e.target.value)} InputLabelProps={{ shrink: true }} />
@@ -81,7 +93,9 @@ export default function ActivityForm({cancelSelectActivity, currentUsername, onC
             <TextField label='Longitude' variant='outlined' fullWidth required value={formState.longitude} onChange={(e) => handleFieldChange('longitude', e.target.value)} />
             <Box display='flex' justifyContent='end' gap={2}>
                 <Button type='button' variant='contained' color='inherit' onClick={cancelSelectActivity}>Cancel</Button>
-                <Button type='submit' variant='contained' color='success'>Submit</Button>            
+                <Button type='submit' variant='contained' color='success' disabled={isSubmitting}>
+                  {isSubmitting ? 'Submitting...' : 'Submit'}
+                </Button>            
             </Box>
         </Box>
     </Paper>
