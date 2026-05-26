@@ -69,6 +69,9 @@ describe('App', () => {
       }
       return Promise.reject(new Error(`Unexpected URL: ${url}`));
     });
+    mockedAxios.post = vi.fn().mockImplementation((_url: string, activity: Activity) => {
+      return Promise.resolve({ data: activity });
+    });
   });
 
   afterEach(() => {
@@ -210,7 +213,7 @@ describe('App', () => {
     consoleSpy.mockRestore();
   });
 
-  it('creates a new activity from the form and renders it in the list', async () => {
+  it('persists a new activity before rendering it in the list', async () => {
     const user = userEvent.setup();
     render(<App />);
 
@@ -228,7 +231,44 @@ describe('App', () => {
     await user.type(screen.getByLabelText(/longitude/i), '-74.00');
     await user.click(screen.getByRole('button', { name: /submit/i }));
 
-    expect(screen.getByText('Created In Test')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        `${getApiBaseUrl()}/api/activities`,
+        expect.objectContaining({
+          title: 'Created In Test',
+          creatorDisplayName: 'Jeff',
+        })
+      );
+      expect(screen.getByText('Created In Test')).toBeInTheDocument();
+    });
+  });
+
+  it('does not add a created activity when persistence fails', async () => {
+    const user = userEvent.setup();
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockedAxios.post = vi.fn().mockRejectedValue(new Error('Network Error'));
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText('First Activity')).toBeInTheDocument();
+    });
+
+    await user.type(screen.getByLabelText(/title/i), 'Unsaved In Test');
+    await user.type(screen.getByLabelText(/date/i), '2026-11-12T18:30');
+    await user.type(screen.getByLabelText(/description/i), 'Created via form');
+    await user.type(screen.getByLabelText(/category/i), 'Networking');
+    await user.type(screen.getByLabelText(/city/i), 'New York');
+    await user.type(screen.getByLabelText(/venue/i), 'Innovation Loft');
+    await user.click(screen.getByRole('button', { name: /submit/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Unable to save activity. Please try again.')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Unsaved In Test')).not.toBeInTheDocument();
+    expect(screen.getByDisplayValue('Unsaved In Test')).toBeInTheDocument();
+
+    consoleSpy.mockRestore();
   });
 
   it('uses navbar create activity action to return from profile to activities view', async () => {
