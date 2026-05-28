@@ -68,12 +68,17 @@ function toProfileEvent(activity: Activity): ProfileEvent {
 
 function buildProfileFromActivities(activities: Activity[], displayName: string): UserProfile {
   const now = new Date();
-  const mapped = activities.map(toProfileEvent);
   const username = displayName.trim() || fallbackProfile.displayName;
+  const normalizedUsername = username.toLowerCase();
+  const mapped = activities
+    .filter(
+      activity => (activity.creatorDisplayName ?? '').trim().toLowerCase() === normalizedUsername
+    )
+    .map(toProfileEvent);
 
   return {
     ...fallbackProfile,
-    username: username.toLowerCase(),
+    username: normalizedUsername,
     displayName: username,
     futureEvents: mapped.filter(eventItem => new Date(eventItem.date) >= now),
     pastEvents: mapped.filter(eventItem => new Date(eventItem.date) < now),
