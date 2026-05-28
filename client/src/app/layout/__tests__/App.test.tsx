@@ -59,19 +59,27 @@ const mockProfile: UserProfile = {
 
 describe('App', () => {
   beforeEach(() => {
+    window.localStorage.clear();
     vi.resetAllMocks();
     mockedAxios.get = vi.fn().mockImplementation((url: string) => {
       if (url === `${getApiBaseUrl()}/api/activities/`) {
         return Promise.resolve({ data: mockActivities });
       }
-      if (url === `${getApiBaseUrl()}/api/profiles/jeff`) {
+      if (url === `${getApiBaseUrl()}/api/profiles/Jeff`) {
         return Promise.resolve({ data: mockProfile });
+      }
+      return Promise.reject(new Error(`Unexpected URL: ${url}`));
+    });
+    mockedAxios.post = vi.fn().mockImplementation((url: string, activity: Activity) => {
+      if (url === `${getApiBaseUrl()}/api/activities`) {
+        return Promise.resolve({ data: activity });
       }
       return Promise.reject(new Error(`Unexpected URL: ${url}`));
     });
   });
 
   afterEach(() => {
+    window.localStorage.clear();
     vi.restoreAllMocks();
   });
 
@@ -102,7 +110,82 @@ describe('App', () => {
     render(<App />);
     await waitFor(() => {
       expect(mockedAxios.get).toHaveBeenCalledWith(`${getApiBaseUrl()}/api/activities/`);
-      expect(mockedAxios.get).toHaveBeenCalledWith(`${getApiBaseUrl()}/api/profiles/jeff`);
+      expect(mockedAxios.get).toHaveBeenCalledWith(`${getApiBaseUrl()}/api/profiles/Jeff`);
+    });
+  });
+
+  it('loads profile data for the persisted username', async () => {
+    window.localStorage.setItem('reactivities_username', 'Amanda');
+    mockedAxios.get = vi.fn().mockImplementation((url: string) => {
+      if (url === `${getApiBaseUrl()}/api/activities/`) {
+        return Promise.resolve({ data: [] });
+      }
+      if (url === `${getApiBaseUrl()}/api/profiles/Amanda`) {
+        return Promise.resolve({
+          data: {
+            ...mockProfile,
+            username: 'amanda',
+            displayName: 'Amanda',
+            futureEvents: [],
+            pastEvents: [],
+          },
+        });
+      }
+      return Promise.reject(new Error(`Unexpected URL: ${url}`));
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(mockedAxios.get).toHaveBeenCalledWith(`${getApiBaseUrl()}/api/profiles/Amanda`);
+    });
+  });
+
+  it('fallback profile data only includes activities created by the active user', async () => {
+    const user = userEvent.setup();
+    mockedAxios.get = vi.fn().mockImplementation((url: string) => {
+      if (url === `${getApiBaseUrl()}/api/activities/`) {
+        return Promise.resolve({
+          data: [
+            {
+              ...mockActivities[0],
+              title: 'Jeff Owned Activity',
+              date: '2027-06-15T12:00:00Z',
+              creatorDisplayName: 'Jeff',
+            },
+            {
+              ...mockActivities[1],
+              title: 'Sarah Owned Activity',
+              date: '2027-07-20T10:00:00Z',
+              creatorDisplayName: 'Sarah',
+            },
+          ],
+        });
+      }
+      if (url === `${getApiBaseUrl()}/api/profiles/Jeff`) {
+        return Promise.resolve({
+          data: {
+            ...mockProfile,
+            futureEvents: [],
+            pastEvents: [],
+          },
+        });
+      }
+      return Promise.reject(new Error(`Unexpected URL: ${url}`));
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Jeff Owned Activity')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByText('Jeff'));
+    await user.click(screen.getByRole('menuitem', { name: 'Profile' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Jeff Owned Activity')).toBeInTheDocument();
+      expect(screen.queryByText('Sarah Owned Activity')).not.toBeInTheDocument();
     });
   });
 
@@ -111,7 +194,7 @@ describe('App', () => {
       if (url === `${getApiBaseUrl()}/api/activities/`) {
         return Promise.resolve({ data: [] });
       }
-      if (url === `${getApiBaseUrl()}/api/profiles/jeff`) {
+      if (url === `${getApiBaseUrl()}/api/profiles/Jeff`) {
         return Promise.resolve({ data: mockProfile });
       }
       return Promise.reject(new Error(`Unexpected URL: ${url}`));
@@ -228,8 +311,17 @@ describe('App', () => {
     await user.type(screen.getByLabelText(/longitude/i), '-74.00');
     await user.click(screen.getByRole('button', { name: /submit/i }));
 
-    expect(screen.getByText('Created In Test')).toBeInTheDocument();
-  });
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        `${getApiBaseUrl()}/api/activities`,
+        expect.objectContaining({
+          title: 'Created In Test',
+          creatorDisplayName: 'Jeff',
+        })
+      );
+      expect(screen.getByText('Created In Test')).toBeInTheDocument();
+    });
+  }, 10000);
 
   it('uses navbar create activity action to return from profile to activities view', async () => {
     const user = userEvent.setup();

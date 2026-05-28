@@ -17,6 +17,7 @@ public class GetUserProfile
         public async Task<UserProfileDto> Handle(Query request, CancellationToken cancellationToken)
         {
             var now = DateTime.UtcNow;
+            var username = request.Username.Trim();
             var allActivities = await context.Activities
                 .OrderBy(a => a.Date)
                 .ToListAsync(cancellationToken);
@@ -24,14 +25,8 @@ public class GetUserProfile
             var userActivities = allActivities
                 .Where(activity =>
                     !string.IsNullOrWhiteSpace(activity.CreatorDisplayName) &&
-                    string.Equals(activity.CreatorDisplayName, request.Username, StringComparison.OrdinalIgnoreCase))
+                    string.Equals(activity.CreatorDisplayName, username, StringComparison.OrdinalIgnoreCase))
                 .ToList();
-
-            // Keep demo behavior usable if no creator data exists yet.
-            if (userActivities.Count == 0)
-            {
-                userActivities = allActivities;
-            }
 
             var futureActivities = userActivities
                 .Where(activity => activity.Date.ToUniversalTime() >= now)
@@ -43,24 +38,10 @@ public class GetUserProfile
                 .Select(MapActivity)
                 .ToList();
 
-            // Seed data is usually future-dated. Ensure the profile still shows history for demo purposes.
-            if (pastActivities.Count == 0)
-            {
-                pastActivities = userActivities
-                    .Take(3)
-                    .Select((activity, index) => MapActivity(activity) with
-                    {
-                        Id = $"{activity.Id}-past-{index + 1}",
-                        Date = activity.Date.AddMonths(-(index + 1))
-                    })
-                    .OrderByDescending(activity => activity.Date)
-                    .ToList();
-            }
-
             return new UserProfileDto
             {
-                Username = request.Username,
-                DisplayName = "Jeff",
+                Username = username.ToLowerInvariant(),
+                DisplayName = ToDisplayName(username),
                 AvatarUrl = "/images/jeff-placeholder.svg",
                 PastEvents = pastActivities,
                 FutureEvents = futureActivities
@@ -77,8 +58,17 @@ public class GetUserProfile
                 Description = activity.Description,
                 Category = activity.Category,
                 City = activity.City,
-                Venue = activity.Venue
+                Venue = activity.Venue,
+                CreatorDisplayName = activity.CreatorDisplayName
             };
+        }
+
+        private static string ToDisplayName(string username)
+        {
+            if (string.IsNullOrWhiteSpace(username)) return "User";
+
+            var trimmed = username.Trim();
+            return char.ToUpperInvariant(trimmed[0]) + trimmed[1..];
         }
     }
 }
@@ -101,4 +91,5 @@ public record ProfileActivityDto
     public string? Category { get; init; }
     public required string City { get; init; }
     public required string Venue { get; init; }
+    public string? CreatorDisplayName { get; init; }
 }

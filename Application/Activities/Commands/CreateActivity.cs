@@ -37,8 +37,8 @@ public class CreateActivity
                 {
                     var existingCreator = await context.People
                         .FirstOrDefaultAsync(
-                            person => person.FirstName == creatorDisplayName ||
-                                      (person.FirstName + " " + person.LastName) == creatorDisplayName,
+                            person => (person.FirstName + " " + person.LastName) == creatorDisplayName ||
+                                      (person.FirstName == creatorDisplayName && person.LastName == "User"),
                             cancellationToken);
 
                     if (existingCreator == null)

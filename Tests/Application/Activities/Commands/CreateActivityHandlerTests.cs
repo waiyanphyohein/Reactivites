@@ -186,6 +186,36 @@ public class CreateActivityHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_WithFirstNameOnly_DoesNotAttachToDifferentFullNamePerson()
+    {
+        // Arrange
+        var existingPerson = new Person
+        {
+            FirstName = "Sarah",
+            LastName = "Johnson",
+            Age = 28,
+            DateOfBirth = DateTime.UtcNow.Date.AddYears(-28)
+        };
+        _context.People.Add(existingPerson);
+        await _context.SaveChangesAsync();
+
+        var activity = ActivityTestData.CreateValidActivity();
+        activity.CreatorDisplayName = "Sarah";
+        var command = new CreateActivity.Command { Activity = activity };
+        var handler = new CreateActivity.Handler(_context);
+
+        // Act
+        var result = await handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        result.CreatorPersonId.Should().NotBe(existingPerson.PersonId);
+        var creator = await _context.People.FindAsync(result.CreatorPersonId);
+        creator.Should().NotBeNull();
+        creator!.FirstName.Should().Be("Sarah");
+        creator.LastName.Should().Be("User");
+    }
+
+    [Fact]
     public async Task Handle_WithoutCreatorDisplayName_LeavesCreatorFieldsNull()
     {
         // Arrange
