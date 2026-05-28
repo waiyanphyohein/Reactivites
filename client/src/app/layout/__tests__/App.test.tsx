@@ -59,6 +59,7 @@ const mockProfile: UserProfile = {
 
 describe('App', () => {
   beforeEach(() => {
+    window.localStorage.clear();
     vi.resetAllMocks();
     mockedAxios.get = vi.fn().mockImplementation((url: string) => {
       if (url === `${getApiBaseUrl()}/api/activities/`) {
@@ -69,9 +70,16 @@ describe('App', () => {
       }
       return Promise.reject(new Error(`Unexpected URL: ${url}`));
     });
+    mockedAxios.post = vi.fn().mockImplementation((url: string, activity: Activity) => {
+      if (url === `${getApiBaseUrl()}/api/activities`) {
+        return Promise.resolve({ data: activity });
+      }
+      return Promise.reject(new Error(`Unexpected URL: ${url}`));
+    });
   });
 
   afterEach(() => {
+    window.localStorage.clear();
     vi.restoreAllMocks();
   });
 
@@ -103,6 +111,33 @@ describe('App', () => {
     await waitFor(() => {
       expect(mockedAxios.get).toHaveBeenCalledWith(`${getApiBaseUrl()}/api/activities/`);
       expect(mockedAxios.get).toHaveBeenCalledWith(`${getApiBaseUrl()}/api/profiles/jeff`);
+    });
+  });
+
+  it('loads profile data for the persisted username', async () => {
+    window.localStorage.setItem('reactivities_username', 'Amanda');
+    mockedAxios.get = vi.fn().mockImplementation((url: string) => {
+      if (url === `${getApiBaseUrl()}/api/activities/`) {
+        return Promise.resolve({ data: [] });
+      }
+      if (url === `${getApiBaseUrl()}/api/profiles/Amanda`) {
+        return Promise.resolve({
+          data: {
+            ...mockProfile,
+            username: 'amanda',
+            displayName: 'Amanda',
+            futureEvents: [],
+            pastEvents: [],
+          },
+        });
+      }
+      return Promise.reject(new Error(`Unexpected URL: ${url}`));
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(mockedAxios.get).toHaveBeenCalledWith(`${getApiBaseUrl()}/api/profiles/Amanda`);
     });
   });
 
@@ -228,7 +263,16 @@ describe('App', () => {
     await user.type(screen.getByLabelText(/longitude/i), '-74.00');
     await user.click(screen.getByRole('button', { name: /submit/i }));
 
-    expect(screen.getByText('Created In Test')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        `${getApiBaseUrl()}/api/activities`,
+        expect.objectContaining({
+          title: 'Created In Test',
+          creatorDisplayName: 'Jeff',
+        })
+      );
+      expect(screen.getByText('Created In Test')).toBeInTheDocument();
+    });
   });
 
   it('uses navbar create activity action to return from profile to activities view', async () => {
