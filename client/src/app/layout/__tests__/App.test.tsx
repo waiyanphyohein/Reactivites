@@ -69,6 +69,14 @@ describe('App', () => {
       }
       return Promise.reject(new Error(`Unexpected URL: ${url}`));
     });
+    mockedAxios.post = vi.fn().mockImplementation((_url: string, activity: Activity) =>
+      Promise.resolve({
+        data: {
+          ...activity,
+          id: '33333333-3333-3333-3333-333333333333',
+        },
+      })
+    );
   });
 
   afterEach(() => {
@@ -228,7 +236,16 @@ describe('App', () => {
     await user.type(screen.getByLabelText(/longitude/i), '-74.00');
     await user.click(screen.getByRole('button', { name: /submit/i }));
 
-    expect(screen.getByText('Created In Test')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        `${getApiBaseUrl()}/api/activities`,
+        expect.objectContaining({
+          title: 'Created In Test',
+          creatorDisplayName: 'Jeff',
+        })
+      );
+      expect(screen.getByText('Created In Test')).toBeInTheDocument();
+    });
   });
 
   it('uses navbar create activity action to return from profile to activities view', async () => {
