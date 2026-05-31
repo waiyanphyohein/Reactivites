@@ -4,7 +4,7 @@ using Persistence;
 using Tests.Application.TestHelpers;
 using Xunit;
 
-namespace Tests.Persistence;
+namespace Tests.PersistenceLayer;
 
 public class DbInitializerTests : IDisposable
 {
