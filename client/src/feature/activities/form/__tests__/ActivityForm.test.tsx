@@ -5,11 +5,12 @@ import ActivityForm from '../ActivityForm';
 
 describe('ActivityForm', () => {
   const mockCancelSelectActivity = vi.fn();
-  const mockCreateActivity = vi.fn();
+  const mockCreateActivity = vi.fn<(activity: Activity) => Promise<boolean>>();
 
   beforeEach(() => {
     mockCancelSelectActivity.mockClear();
-    mockCreateActivity.mockClear();
+    mockCreateActivity.mockReset();
+    mockCreateActivity.mockResolvedValue(true);
   });
 
   it('renders the Create Activity heading', () => {
@@ -96,5 +97,22 @@ describe('ActivityForm', () => {
         creatorDisplayName: 'Jeff',
       })
     );
+  });
+
+  it('does not clear the form when the activity is not saved', async () => {
+    mockCreateActivity.mockResolvedValue(false);
+    const user = userEvent.setup();
+    render(<ActivityForm cancelSelectActivity={mockCancelSelectActivity} currentUsername='Jeff' onCreateActivity={mockCreateActivity} />);
+
+    await user.type(screen.getByLabelText(/title/i), 'Unsaved Activity');
+    await user.type(screen.getByLabelText(/date/i), '2026-10-12T14:30');
+    await user.type(screen.getByLabelText(/description/i), 'Should remain in the form');
+    await user.type(screen.getByLabelText(/city/i), 'Boston');
+    await user.type(screen.getByLabelText(/venue/i), 'Downtown Hub');
+
+    await user.click(screen.getByRole('button', { name: /submit/i }));
+
+    expect(await screen.findByText(/activity could not be saved/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/title/i)).toHaveValue('Unsaved Activity');
   });
 });
