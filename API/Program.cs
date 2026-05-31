@@ -217,12 +217,7 @@ using (var scope = app.Services.CreateScope())
         var logger = services.GetRequiredService<ILogger<Program>>();
         logger.LogError(ex, "An error occurred while seeding the database. Error: {Message}", ex.Message);
         logger.LogError(ex, "Stack trace: {StackTrace}", ex.StackTrace);
-        
-        // In development, you might want to rethrow to see the error
-        if (app.Environment.IsDevelopment())
-        {
-            throw;
-        }
+        throw;
     }
 }
 

@@ -122,4 +122,18 @@ public class GetUserProfileHandlerTests : IDisposable
         result.PastEvents.Should().NotBeEmpty();
         result.PastEvents[0].Id.Should().Contain("-past-");
     }
+
+    [Fact]
+    public async Task Handle_UsesRequestedUsernameForProfileIdentity()
+    {
+        // Arrange
+        var handler = new GetUserProfile.Handler(_context);
+
+        // Act
+        var result = await handler.Handle(new GetUserProfile.Query { Username = "alice" }, CancellationToken.None);
+
+        // Assert
+        result.Username.Should().Be("alice");
+        result.DisplayName.Should().Be("alice");
+    }
 }

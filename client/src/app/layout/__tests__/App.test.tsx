@@ -60,6 +60,7 @@ const mockProfile: UserProfile = {
 describe('App', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    window.localStorage.clear();
     mockedAxios.get = vi.fn().mockImplementation((url: string) => {
       if (url === `${getApiBaseUrl()}/api/activities/`) {
         return Promise.resolve({ data: mockActivities });
@@ -69,6 +70,9 @@ describe('App', () => {
       }
       return Promise.reject(new Error(`Unexpected URL: ${url}`));
     });
+    mockedAxios.post = vi.fn().mockImplementation((_url: string, activity: Activity) =>
+      Promise.resolve({ data: activity })
+    );
   });
 
   afterEach(() => {
@@ -103,6 +107,28 @@ describe('App', () => {
     await waitFor(() => {
       expect(mockedAxios.get).toHaveBeenCalledWith(`${getApiBaseUrl()}/api/activities/`);
       expect(mockedAxios.get).toHaveBeenCalledWith(`${getApiBaseUrl()}/api/profiles/jeff`);
+    });
+  });
+
+  it('loads the profile for the persisted username', async () => {
+    window.localStorage.setItem('reactivities_auth', '1');
+    window.localStorage.setItem('reactivities_username', 'Alice');
+    mockedAxios.get = vi.fn().mockImplementation((url: string) => {
+      if (url === `${getApiBaseUrl()}/api/activities/`) {
+        return Promise.resolve({ data: mockActivities });
+      }
+      if (url === `${getApiBaseUrl()}/api/profiles/alice`) {
+        return Promise.resolve({
+          data: { ...mockProfile, username: 'alice', displayName: 'Alice' },
+        });
+      }
+      return Promise.reject(new Error(`Unexpected URL: ${url}`));
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(mockedAxios.get).toHaveBeenCalledWith(`${getApiBaseUrl()}/api/profiles/alice`);
     });
   });
 
@@ -228,7 +254,13 @@ describe('App', () => {
     await user.type(screen.getByLabelText(/longitude/i), '-74.00');
     await user.click(screen.getByRole('button', { name: /submit/i }));
 
-    expect(screen.getByText('Created In Test')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        `${getApiBaseUrl()}/api/activities`,
+        expect.objectContaining({ title: 'Created In Test', creatorDisplayName: 'Jeff' })
+      );
+      expect(screen.getByText('Created In Test')).toBeInTheDocument();
+    });
   });
 
   it('uses navbar create activity action to return from profile to activities view', async () => {

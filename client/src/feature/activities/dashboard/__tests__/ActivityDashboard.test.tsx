@@ -7,12 +7,13 @@ import { createActivity, createActivityList } from '../../../../test/fixtures';
 describe('ActivityDashboard', () => {
   const mockSelectActivity = vi.fn();
   const mockCancelSelectActivity = vi.fn();
-  const mockCreateActivity = vi.fn();
+  const mockCreateActivity = vi.fn<(activity: Activity) => Promise<boolean>>();
 
   beforeEach(() => {
     mockSelectActivity.mockClear();
     mockCancelSelectActivity.mockClear();
-    mockCreateActivity.mockClear();
+    mockCreateActivity.mockReset();
+    mockCreateActivity.mockResolvedValue(true);
   });
 
   it('renders the activity list', () => {

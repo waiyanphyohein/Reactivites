@@ -60,7 +60,7 @@ public class GetUserProfile
             return new UserProfileDto
             {
                 Username = request.Username,
-                DisplayName = "Jeff",
+                DisplayName = request.Username,
                 AvatarUrl = "/images/jeff-placeholder.svg",
                 PastEvents = pastActivities,
                 FutureEvents = futureActivities
