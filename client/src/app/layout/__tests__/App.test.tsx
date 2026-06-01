@@ -69,6 +69,12 @@ describe('App', () => {
       }
       return Promise.reject(new Error(`Unexpected URL: ${url}`));
     });
+    mockedAxios.post = vi.fn().mockImplementation((url: string, activity: Activity) => {
+      if (url === `${getApiBaseUrl()}/api/activities`) {
+        return Promise.resolve({ data: { ...activity, id: 'persisted-activity-id' } });
+      }
+      return Promise.reject(new Error(`Unexpected URL: ${url}`));
+    });
   });
 
   afterEach(() => {
@@ -228,7 +234,44 @@ describe('App', () => {
     await user.type(screen.getByLabelText(/longitude/i), '-74.00');
     await user.click(screen.getByRole('button', { name: /submit/i }));
 
-    expect(screen.getByText('Created In Test')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        `${getApiBaseUrl()}/api/activities`,
+        expect.objectContaining({
+          title: 'Created In Test',
+          creatorDisplayName: 'Jeff',
+        })
+      );
+      expect(screen.getByText('Created In Test')).toBeInTheDocument();
+    });
+  });
+
+  it('does not render a newly submitted activity when backend creation fails', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const user = userEvent.setup();
+    mockedAxios.post = vi.fn().mockRejectedValue(new Error('Save failed'));
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText('First Activity')).toBeInTheDocument();
+    });
+
+    await user.type(screen.getByLabelText(/title/i), 'Rejected Activity');
+    await user.type(screen.getByLabelText(/date/i), '2026-11-12T18:30');
+    await user.type(screen.getByLabelText(/description/i), 'Created via form');
+    await user.type(screen.getByLabelText(/category/i), 'Networking');
+    await user.type(screen.getByLabelText(/city/i), 'New York');
+    await user.type(screen.getByLabelText(/venue/i), 'Innovation Loft');
+    await user.type(screen.getByLabelText(/latitude/i), '40.71');
+    await user.type(screen.getByLabelText(/longitude/i), '-74.00');
+    await user.click(screen.getByRole('button', { name: /submit/i }));
+
+    await waitFor(() => {
+      expect(mockedAxios.post).toHaveBeenCalled();
+      expect(screen.getByText(/activity could not be saved/i)).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Rejected Activity')).not.toBeInTheDocument();
+    consoleSpy.mockRestore();
   });
 
   it('uses navbar create activity action to return from profile to activities view', async () => {

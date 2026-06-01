@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ActivityForm from '../ActivityForm';
 
@@ -10,6 +10,7 @@ describe('ActivityForm', () => {
   beforeEach(() => {
     mockCancelSelectActivity.mockClear();
     mockCreateActivity.mockClear();
+    mockCreateActivity.mockResolvedValue(true);
   });
 
   it('renders the Create Activity heading', () => {
@@ -96,5 +97,27 @@ describe('ActivityForm', () => {
         creatorDisplayName: 'Jeff',
       })
     );
+  });
+
+  it('shows an error and keeps form values when activity creation fails', async () => {
+    const user = userEvent.setup();
+    mockCreateActivity.mockResolvedValue(false);
+    render(<ActivityForm cancelSelectActivity={mockCancelSelectActivity} currentUsername='Jeff' onCreateActivity={mockCreateActivity} />);
+
+    await user.type(screen.getByLabelText(/title/i), 'Unsaved Activity');
+    await user.type(screen.getByLabelText(/date/i), '2026-10-12T14:30');
+    await user.type(screen.getByLabelText(/description/i), 'Save fails');
+    await user.type(screen.getByLabelText(/category/i), 'Networking');
+    await user.type(screen.getByLabelText(/city/i), 'Boston');
+    await user.type(screen.getByLabelText(/venue/i), 'Downtown Hub');
+    await user.type(screen.getByLabelText(/latitude/i), '42.36');
+    await user.type(screen.getByLabelText(/longitude/i), '-71.06');
+
+    await user.click(screen.getByRole('button', { name: /submit/i }));
+
+    expect(await screen.findByText(/activity could not be saved/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByLabelText(/title/i)).toHaveValue('Unsaved Activity');
+    });
   });
 });
