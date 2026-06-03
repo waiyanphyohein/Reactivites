@@ -1,15 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ActivityForm from '../ActivityForm';
 
 describe('ActivityForm', () => {
   const mockCancelSelectActivity = vi.fn();
-  const mockCreateActivity = vi.fn();
+  const mockCreateActivity = vi.fn<(activity: Activity) => Promise<boolean>>();
 
   beforeEach(() => {
     mockCancelSelectActivity.mockClear();
-    mockCreateActivity.mockClear();
+    mockCreateActivity.mockReset();
+    mockCreateActivity.mockResolvedValue(true);
   });
 
   it('renders the Create Activity heading', () => {
@@ -78,14 +79,14 @@ describe('ActivityForm', () => {
     const user = userEvent.setup();
     render(<ActivityForm cancelSelectActivity={mockCancelSelectActivity} currentUsername='Jeff' onCreateActivity={mockCreateActivity} />);
 
-    await user.type(screen.getByLabelText(/title/i), 'My Creator Activity');
-    await user.type(screen.getByLabelText(/date/i), '2026-10-12T14:30');
-    await user.type(screen.getByLabelText(/description/i), 'Owned by Jeff');
-    await user.type(screen.getByLabelText(/category/i), 'Networking');
-    await user.type(screen.getByLabelText(/city/i), 'Boston');
-    await user.type(screen.getByLabelText(/venue/i), 'Downtown Hub');
-    await user.type(screen.getByLabelText(/latitude/i), '42.36');
-    await user.type(screen.getByLabelText(/longitude/i), '-71.06');
+    fireEvent.change(screen.getByLabelText(/title/i), { target: { value: 'My Creator Activity' } });
+    fireEvent.change(screen.getByLabelText(/date/i), { target: { value: '2026-10-12T14:30' } });
+    fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Owned by Jeff' } });
+    fireEvent.change(screen.getByLabelText(/category/i), { target: { value: 'Networking' } });
+    fireEvent.change(screen.getByLabelText(/city/i), { target: { value: 'Boston' } });
+    fireEvent.change(screen.getByLabelText(/venue/i), { target: { value: 'Downtown Hub' } });
+    fireEvent.change(screen.getByLabelText(/latitude/i), { target: { value: '42.36' } });
+    fireEvent.change(screen.getByLabelText(/longitude/i), { target: { value: '-71.06' } });
 
     await user.click(screen.getByRole('button', { name: /submit/i }));
 
