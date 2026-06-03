@@ -56,6 +56,8 @@ public class GetUserProfileHandlerTests : IDisposable
         var result = await handler.Handle(new GetUserProfile.Query { Username = "jeff" }, CancellationToken.None);
 
         // Assert
+        result.Username.Should().Be("jeff");
+        result.DisplayName.Should().Be("jeff");
         result.FutureEvents.Should().ContainSingle();
         result.FutureEvents[0].Title.Should().Be("Jeff Future Event");
     }

@@ -16,6 +16,10 @@ const fallbackProfile: UserProfile = {
   futureEvents: [],
 };
 
+function toProfileUsername(displayName: string): string {
+  return displayName.trim().toLowerCase() || fallbackProfile.username;
+}
+
 function normalizeActivity(raw: Record<string, unknown>): Activity | null {
   const id = (raw.id ?? raw.Id) as string | undefined;
   const title = (raw.title ?? raw.Title) as string | undefined;
@@ -94,8 +98,12 @@ function App() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [selectedActivity, setSelectedActivity] = useState<Activity | undefined>(undefined);
   const [activeView, setActiveView] = useState<'activities' | 'profile'>('activities');
+  const [profileUsername, setProfileUsername] = useState(
+    toProfileUsername(persistedUsername ?? fallbackProfile.displayName)
+  );
   const [profile, setProfile] = useState<UserProfile>({
     ...fallbackProfile,
+    username: toProfileUsername(persistedUsername ?? fallbackProfile.displayName),
     displayName: persistedUsername ?? fallbackProfile.displayName,
   });
 
@@ -120,7 +128,9 @@ function App() {
       const profileFromActivities = buildProfileFromActivities(loadedActivities);
 
       try {
-        const profileResponse = await axios.get(`${getApiBaseUrl()}/api/profiles/jeff`);
+        const profileResponse = await axios.get(
+          `${getApiBaseUrl()}/api/profiles/${encodeURIComponent(profileUsername)}`
+        );
         const apiProfile = profileResponse.data as UserProfile;
         const hasProfileEvents =
           apiProfile.futureEvents.length > 0 || apiProfile.pastEvents.length > 0;
@@ -131,15 +141,19 @@ function App() {
           );
         }
 
-        setProfile(hasProfileEvents ? apiProfile : profileFromActivities);
+        setProfile(
+          hasProfileEvents
+            ? { ...apiProfile, username: profileUsername, displayName: profile.displayName }
+            : { ...profileFromActivities, username: profileUsername, displayName: profile.displayName }
+        );
       } catch (error) {
         console.error('Error fetching profile:', error);
-        setProfile(profileFromActivities);
+        setProfile({ ...profileFromActivities, username: profileUsername, displayName: profile.displayName });
       }
     };
 
     void loadData();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, profile.displayName, profileUsername]);
 
   const handleSelectActivity = (id: string) => {
     setSelectedActivity(activities.find(activity => activity.id === id));
@@ -149,21 +163,31 @@ function App() {
     setSelectedActivity(undefined);
   };
 
-  const handleCreateActivity = (activity: Activity) => {
-    setActivities(current => [activity, ...current]);
+  const handleCreateActivity = async (activity: Activity) => {
+    try {
+      const response = await axios.post(`${getApiBaseUrl()}/api/activities`, activity);
+      const createdActivity = normalizeActivity(response.data as Record<string, unknown>) ?? activity;
 
-    const currentUsername = profile.displayName.trim().toLowerCase();
-    const activityCreator = (activity.creatorDisplayName ?? '').trim().toLowerCase();
-    if (activityCreator !== currentUsername) return;
+      setActivities(current => [createdActivity, ...current]);
 
-    const profileEvent = toProfileEvent(activity);
-    const isFuture = new Date(activity.date) >= new Date();
+      const currentUsername = profile.displayName.trim().toLowerCase();
+      const activityCreator = (createdActivity.creatorDisplayName ?? '').trim().toLowerCase();
+      if (activityCreator !== currentUsername) return true;
 
-    setProfile(current => ({
-      ...current,
-      futureEvents: isFuture ? [profileEvent, ...current.futureEvents] : current.futureEvents,
-      pastEvents: isFuture ? current.pastEvents : [profileEvent, ...current.pastEvents],
-    }));
+      const profileEvent = toProfileEvent(createdActivity);
+      const isFuture = new Date(createdActivity.date) >= new Date();
+
+      setProfile(current => ({
+        ...current,
+        futureEvents: isFuture ? [profileEvent, ...current.futureEvents] : current.futureEvents,
+        pastEvents: isFuture ? current.pastEvents : [profileEvent, ...current.pastEvents],
+      }));
+
+      return true;
+    } catch (error) {
+      console.error('Error creating activity:', error);
+      return false;
+    }
   };
 
   const handleCreateActivityAction = () => {
@@ -186,7 +210,8 @@ function App() {
       storage.setItem('reactivities_username', username);
     }
 
-    setProfile(current => ({ ...current, displayName: username }));
+    setProfileUsername(toProfileUsername(username));
+    setProfile(current => ({ ...current, username: toProfileUsername(username), displayName: username }));
     setIsAuthenticated(true);
   };
 

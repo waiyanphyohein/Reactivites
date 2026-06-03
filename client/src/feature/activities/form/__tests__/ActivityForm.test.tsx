@@ -5,11 +5,12 @@ import ActivityForm from '../ActivityForm';
 
 describe('ActivityForm', () => {
   const mockCancelSelectActivity = vi.fn();
-  const mockCreateActivity = vi.fn();
+  const mockCreateActivity = vi.fn<(activity: Activity) => Promise<boolean>>();
 
   beforeEach(() => {
     mockCancelSelectActivity.mockClear();
-    mockCreateActivity.mockClear();
+    mockCreateActivity.mockReset();
+    mockCreateActivity.mockResolvedValue(true);
   });
 
   it('renders the Create Activity heading', () => {
