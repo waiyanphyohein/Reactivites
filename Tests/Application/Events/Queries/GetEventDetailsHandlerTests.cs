@@ -30,6 +30,7 @@ public class GetEventDetailsHandlerTests : IDisposable
     {
         // Arrange
         var eventEntity = EventTestData.CreateValidEvent();
+        eventEntity.GroupId.Should().NotBe(eventEntity.EventId);
         _context.Events.Add(eventEntity);
         await _context.SaveChangesAsync();
 
