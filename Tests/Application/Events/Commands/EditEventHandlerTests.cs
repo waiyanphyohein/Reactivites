@@ -2,6 +2,7 @@ using Application.Events.Commands;
 using Tests.Application.TestHelpers;
 using Domain;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using System.Net;
@@ -33,6 +34,7 @@ public class EditEventHandlerTests : IDisposable
     {
         // Arrange
         var existingEvent = EventTestData.CreateValidEvent();
+        existingEvent.GroupId.Should().NotBe(existingEvent.EventId);
         _context.Events.Add(existingEvent);
         await _context.SaveChangesAsync();
 
@@ -131,7 +133,8 @@ public class EditEventHandlerTests : IDisposable
         await handler.Handle(command, CancellationToken.None);
 
         // Assert
-        var savedEvent = await _context.Events.FindAsync(existingEvent.EventId);
+        var savedEvent = await _context.Events
+            .FirstOrDefaultAsync(e => e.EventId == existingEvent.EventId);
         savedEvent.Should().NotBeNull();
         savedEvent!.EventName.Should().Be("Saved Name");
     }

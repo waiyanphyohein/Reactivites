@@ -31,6 +31,7 @@ public class DeleteEventHandlerTests : IDisposable
     {
         // Arrange
         var eventEntity = EventTestData.CreateValidEvent();
+        eventEntity.GroupId.Should().NotBe(eventEntity.EventId);
         _context.Events.Add(eventEntity);
         await _context.SaveChangesAsync();
 
@@ -41,7 +42,8 @@ public class DeleteEventHandlerTests : IDisposable
         await handler.Handle(command, CancellationToken.None);
 
         // Assert
-        var deletedEvent = await _context.Events.FindAsync(eventEntity.EventId);
+        var deletedEvent = await _context.Events
+            .FirstOrDefaultAsync(e => e.EventId == eventEntity.EventId);
         deletedEvent.Should().BeNull();
     }
 
@@ -84,7 +86,7 @@ public class DeleteEventHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_CancellationAtStart_ThrowsInternalServerErrorException()
+    public async Task Handle_CancellationAtStart_ThrowsRequestTimeoutException()
     {
         // Arrange
         var eventEntity = EventTestData.CreateValidEvent();
@@ -99,9 +101,10 @@ public class DeleteEventHandlerTests : IDisposable
         // Act
         Func<Task> act = async () => await handler.Handle(command, cts.Token);
 
-        // Assert - OperationCanceledException gets wrapped by the generic Exception handler
+        // Assert
         await act.Should().ThrowAsync<HttpRequestException>()
-            .Where(ex => ex.StatusCode == HttpStatusCode.InternalServerError);
+            .Where(ex => ex.StatusCode == HttpStatusCode.RequestTimeout)
+            .WithMessage("*Request timed out*");
     }
 
     [Fact]

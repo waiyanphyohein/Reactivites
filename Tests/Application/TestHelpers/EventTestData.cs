@@ -4,18 +4,18 @@ namespace Tests.Application.TestHelpers;
 
 public static class EventTestData
 {
-    public static Event CreateValidEvent(Guid? eventId = null)
+    public static Event CreateValidEvent(Guid? eventId = null, Guid? groupId = null)
     {
-        // GroupId is the EF Core PK (inherited from Group via TPH).
-        // Setting GroupId == EventId allows FindAsync(EventId) to locate the record.
         var id = eventId ?? Guid.NewGuid();
+        var resolvedGroupId = groupId ?? CreateDistinctGroupId(id);
+
         return new Event
         {
             EventId = id,
             EventName = "Test Event",
             EventDescription = "Test Event Description",
             Location = "Test Location",
-            GroupId = id,
+            GroupId = resolvedGroupId,
             GroupName = "Test Group",
             GroupDescription = "Test Group Description",
             Organizers = new List<Person>
@@ -45,7 +45,7 @@ public static class EventTestData
                     EventName = $"Event {i}",
                     EventDescription = $"Description {i}",
                     Location = $"Location {i}",
-                    GroupId = id, // GroupId == EventId so FindAsync(EventId) works (PK is GroupId)
+                    GroupId = CreateDistinctGroupId(id),
                     GroupName = $"Group {i}",
                     GroupDescription = $"Group Description {i}",
                     Organizers = new List<Person>
@@ -72,5 +72,11 @@ public static class EventTestData
             GroupDescription = null,   // null → AutoMapper ignores (preserves original)
             Organizers = organizers ?? new List<Person>()
         };
+    }
+
+    private static Guid CreateDistinctGroupId(Guid eventId)
+    {
+        var groupId = Guid.NewGuid();
+        return groupId == eventId ? Guid.NewGuid() : groupId;
     }
 }
