@@ -43,7 +43,7 @@ public class EditEvent
 
                 return eventEntity;
             }
-            catch (TaskCanceledException)
+            catch (OperationCanceledException)
             {
                 _logger.LogWarning("Request timed out while updating event with ID {EventId}", request.Event.EventId);
                 throw new HttpRequestException("Request timed out", null, System.Net.HttpStatusCode.RequestTimeout);
