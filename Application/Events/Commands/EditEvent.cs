@@ -3,6 +3,7 @@ using MediatR;
 using Domain;
 using Persistence;
 using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Application.Events.Commands;
@@ -24,7 +25,8 @@ public class EditEvent
         {
             try
             {
-                var eventEntity = await _context.Events.FindAsync(new object[] { request.Event.EventId }, cancellationToken);
+                var eventEntity = await _context.Events
+                    .FirstOrDefaultAsync(eventEntity => eventEntity.EventId == request.Event.EventId, cancellationToken);
                 
                 if (eventEntity == null)
                 {
