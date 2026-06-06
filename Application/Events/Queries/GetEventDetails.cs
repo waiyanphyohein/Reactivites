@@ -2,6 +2,7 @@ using System;
 using Domain;  
 using MediatR;  
 using System.Net;  
+using Microsoft.EntityFrameworkCore;
 using Persistence;
 using Microsoft.Extensions.Logging;
 
@@ -21,7 +22,8 @@ public class GetEventDetails
             try
             {
                 logger.LogInformation("Fetching event details for EventId: {EventId}", request.EventId);
-                var eventEntity = await context.Events.FindAsync(new object[] { request.EventId }, cancellationToken);
+                var eventEntity = await context.Events
+                    .FirstOrDefaultAsync(eventEntity => eventEntity.EventId == request.EventId, cancellationToken);
 
                 if (eventEntity == null)
                 {
