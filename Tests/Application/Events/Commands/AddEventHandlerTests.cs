@@ -75,6 +75,21 @@ public class AddEventHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_ValidEventWithEmptyIds_UsesSameEventAndGroupId()
+    {
+        // Arrange
+        var eventEntity = EventTestData.CreateEventWithEmptyIds();
+        var command = new CreateEvent.Command { Event = eventEntity };
+        var handler = new CreateEvent.Handler(_context, _logger);
+
+        // Act
+        var result = await handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        result.EventId.Should().Be(result.GroupId);
+    }
+
+    [Fact]
     public async Task Handle_ValidEventWithProvidedIds_PreservesProvidedIds()
     {
         // Arrange
