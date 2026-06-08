@@ -3,6 +3,7 @@ using MediatR;
 using Domain;
 using Persistence;
 using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Application.Events.Commands;
@@ -24,7 +25,7 @@ public class EditEvent
         {
             try
             {
-                var eventEntity = await _context.Events.FindAsync(new object[] { request.Event.EventId }, cancellationToken);
+                var eventEntity = await _context.Events.FirstOrDefaultAsync(e => e.EventId == request.Event.EventId, cancellationToken);
                 
                 if (eventEntity == null)
                 {
@@ -41,7 +42,7 @@ public class EditEvent
 
                 return eventEntity;
             }
-            catch (TaskCanceledException)
+            catch (OperationCanceledException)
             {
                 _logger.LogWarning("Request timed out while updating event with ID {EventId}", request.Event.EventId);
                 throw new HttpRequestException("Request timed out", null, System.Net.HttpStatusCode.RequestTimeout);
