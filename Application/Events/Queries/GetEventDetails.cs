@@ -33,7 +33,7 @@ public class GetEventDetails
                 logger.LogInformation("Event with ID {EventId} retrieved successfully: {EventName}", eventEntity.EventId, eventEntity.EventName);
                 return eventEntity;
             }
-            catch (TaskCanceledException)
+            catch (OperationCanceledException)
             {
                 // Handle the cancellation if needed
                 logger.LogWarning("Request timed out while fetching event details for EventId: {EventId}", request.EventId);

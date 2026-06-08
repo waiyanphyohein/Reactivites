@@ -106,10 +106,8 @@ public class GetEventDetailsHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_NonExistentEvent_WithCancelledToken_ThrowsRequestTimeoutException()
+    public async Task Handle_CancelledToken_ThrowsRequestTimeoutException()
     {
-        // Arrange - Non-existent event with cancelled token; in-memory FindAsync returns null.
-        // Handler throws HttpRequestException(NotFound) before it can check for cancellation.
         var nonExistentId = Guid.NewGuid();
         var query = new GetEventDetails.Query { EventId = nonExistentId };
         var handler = new GetEventDetails.Handler(_context, _logger);
@@ -119,9 +117,10 @@ public class GetEventDetailsHandlerTests : IDisposable
         // Act
         Func<Task> act = async () => await handler.Handle(query, cts.Token);
 
-        // Assert - in-memory EF FindAsync with cancelled token throws OperationCanceledException
-        // which is wrapped by catch (TaskCanceledException) → HttpRequestException(RequestTimeout)
-        await act.Should().ThrowAsync<Exception>();
+        // Assert
+        await act.Should().ThrowAsync<HttpRequestException>()
+            .Where(ex => ex.StatusCode == HttpStatusCode.RequestTimeout)
+            .WithMessage("*Request timed out*");
     }
 
     [Fact]

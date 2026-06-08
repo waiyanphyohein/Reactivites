@@ -36,7 +36,7 @@ public class DeleteEvent
                 
                 logger.LogInformation("Event with ID {EventId} deleted successfully: {EventName}", eventEntity.EventId, eventEntity.EventName);
             }
-            catch (TaskCanceledException)
+            catch (OperationCanceledException)
             {
                 // Handle the cancellation if needed
                 logger.LogWarning("Request timed out");
