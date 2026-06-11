@@ -61,6 +61,38 @@ public class EditEventHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_ExistingEventWithDifferentGroupId_UpdatesByEventIdAndPreservesGroupId()
+    {
+        // Arrange
+        var existingEvent = EventTestData.CreateEventWithDistinctGroupId();
+        _context.Events.Add(existingEvent);
+        await _context.SaveChangesAsync();
+
+        var submittedGroupId = Guid.NewGuid();
+        var updatedEvent = new Event
+        {
+            EventId = existingEvent.EventId,
+            EventName = "Updated Event Name",
+            EventDescription = "Updated Description",
+            Location = "Updated Location",
+            GroupId = submittedGroupId,
+            GroupName = existingEvent.GroupName,
+            Organizers = existingEvent.Organizers
+        };
+
+        var command = new EditEvent.Command(updatedEvent);
+        var handler = new EditEvent.Handler(_context, _mapper, _logger);
+
+        // Act
+        var result = await handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        result.EventName.Should().Be("Updated Event Name");
+        result.GroupId.Should().Be(existingEvent.GroupId);
+        result.GroupId.Should().NotBe(submittedGroupId);
+    }
+
+    [Fact]
     public async Task Handle_NonExistentEvent_ThrowsKeyNotFoundException()
     {
         // Arrange

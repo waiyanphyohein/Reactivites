@@ -4,7 +4,7 @@ import { Box, Button, Paper, TextField, Typography } from '@mui/material';
 type Props = {
   cancelSelectActivity: () => void;
   currentUsername: string;
-  onCreateActivity: (activity: Activity) => void;
+  onCreateActivity: (activity: Activity) => Promise<void> | void;
 }
 
 type FormState = {
@@ -36,7 +36,7 @@ export default function ActivityForm({cancelSelectActivity, currentUsername, onC
     setFormState(current => ({ ...current, [field]: value }));
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!formState.title || !formState.date || !formState.city || !formState.venue) return;
@@ -46,7 +46,7 @@ export default function ActivityForm({cancelSelectActivity, currentUsername, onC
         ? crypto.randomUUID()
         : `${Date.now()}`;
 
-    onCreateActivity({
+    await onCreateActivity({
       id: generatedId,
       title: formState.title,
       date: formState.date,

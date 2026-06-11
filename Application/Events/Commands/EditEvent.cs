@@ -4,6 +4,7 @@ using Domain;
 using Persistence;
 using AutoMapper;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Events.Commands;
 
@@ -24,7 +25,8 @@ public class EditEvent
         {
             try
             {
-                var eventEntity = await _context.Events.FindAsync(new object[] { request.Event.EventId }, cancellationToken);
+                var eventEntity = await _context.Events
+                    .FirstOrDefaultAsync(evt => evt.EventId == request.Event.EventId, cancellationToken);
                 
                 if (eventEntity == null)
                 {
@@ -33,6 +35,7 @@ public class EditEvent
                 }
 
                 // Update only the fields that are provided (not null)
+                request.Event.GroupId = eventEntity.GroupId;
                 _mapper.Map(request.Event, eventEntity);
 
                 _logger.LogInformation("Event with ID {EventId} updated successfully: {EventName}", eventEntity.EventId, eventEntity.EventName);
