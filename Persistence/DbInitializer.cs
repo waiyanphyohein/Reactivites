@@ -58,10 +58,10 @@ public class DbInitializer
             else
             {
                 // Check if database is empty
-                var hasAnyData = await context.Activities.AnyAsync() &&
-                               await context.Events.AnyAsync() &&
-                               await context.People.AnyAsync() &&
-                               await context.Tags.AnyAsync() &&
+                var hasAnyData = await context.Activities.AnyAsync() ||
+                               await context.Events.AnyAsync() ||
+                               await context.People.AnyAsync() ||
+                               await context.Tags.AnyAsync() ||
                                await context.Groups.AnyAsync();
 
                 if (hasAnyData)
