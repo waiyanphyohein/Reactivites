@@ -149,15 +149,31 @@ function App() {
     setSelectedActivity(undefined);
   };
 
-  const handleCreateActivity = (activity: Activity) => {
-    setActivities(current => [activity, ...current]);
+  const handleCreateActivity = async (activity: Activity) => {
+    let createdActivity: Activity;
+
+    try {
+      const response = await axios.post(`${getApiBaseUrl()}/api/activities`, activity);
+      const normalizedActivity = normalizeActivity(response.data as Record<string, unknown>);
+
+      if (!normalizedActivity) {
+        throw new Error('Create activity response is missing required fields');
+      }
+
+      createdActivity = normalizedActivity;
+    } catch (error) {
+      console.error('Error creating activity:', error);
+      return;
+    }
+
+    setActivities(current => [createdActivity, ...current]);
 
     const currentUsername = profile.displayName.trim().toLowerCase();
-    const activityCreator = (activity.creatorDisplayName ?? '').trim().toLowerCase();
+    const activityCreator = (createdActivity.creatorDisplayName ?? '').trim().toLowerCase();
     if (activityCreator !== currentUsername) return;
 
-    const profileEvent = toProfileEvent(activity);
-    const isFuture = new Date(activity.date) >= new Date();
+    const profileEvent = toProfileEvent(createdActivity);
+    const isFuture = new Date(createdActivity.date) >= new Date();
 
     setProfile(current => ({
       ...current,
